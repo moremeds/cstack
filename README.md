@@ -29,7 +29,7 @@ hooks/     mechanical interception           exit 2 blocks the tool call
    ↓  who applies it to real output?
 commands/  public runtime entry points       shared operational commands
    ↓  who reviews their behavior?
-skills/    a multi-pass review chain         cross-model panel, per-pass fixes
+skills/    review chain + status readout     cross-model panel, plain-english state
    ↓  who keeps these honest?
 tests/     contract tests, mutation-checked
 ```
@@ -43,7 +43,7 @@ runtime lives in one place here and is symlinked into each.
 | [`rules/`](#rules) | standing instructions, reasons attached | the layer below |
 | [`hooks/`](#hooks) | shell hooks that block tool calls | the runtime |
 | [`commands/`](#commands) | shareable slash commands | — |
-| [`skills/`](#skills) | the review chain | cross-model panel |
+| [`skills/`](#skills) | the review chain, plus a status readout | cross-model panel · evidence in the output |
 | [`tests/`](#tests) | contract tests over the config itself | `unittest` |
 
 ---
@@ -100,13 +100,14 @@ account-specific commands stay in the private bootstrap repository.
 
 ## `skills/`
 
-Three skills that call each other:
+Three skills that call each other, plus one that stands alone:
 
 | Skill | Role |
 | --- | --- |
 | `tribunal-review` | cross-model panel, weighted consensus |
 | `review-cycle` | six passes around the tribunal, per-pass fixes |
 | `execute-plan` | worktree → implementation → milestone commits → evidence-based verification |
+| `whatup` | plain-language status readout, grounded in git/PR/test evidence |
 
 ### `tribunal-review`
 

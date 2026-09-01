@@ -76,6 +76,30 @@ opts to abort.
 - **Defer judgment-call fixes** until after the Pass 2 tribunal weighs in: architecture pushes, scope changes, taste calls, anything where you're unsure whether the change is an improvement.
 - **Track what you deferred** in your task list so Pass 2 can revisit them with the tribunal's input.
 
+### Context discipline (all passes)
+
+Six passes over one artifact is six chances to re-read the same bytes, and every
+byte pulled in is re-read as cache on every later call in the cycle. What each
+pass looks at is unchanged; only how it fetches it.
+
+```bash
+RC_SP="${CLAUDE_SCRATCHPAD:-$(mktemp -d)}/review-cycle"; mkdir -p "$RC_SP"
+RC_BASE=$(git rev-parse HEAD)          # pin once, before Pass 1
+git diff "$RC_BASE" > "$RC_SP/after-1.diff"   # …and after each pass's apply step
+```
+
+- **Read any file in full at most once per cycle.** After that, later passes read
+  `git diff "$RC_BASE"`, and re-open a file only when a finding cites a line the
+  diff does not show.
+- **Pass 3b** scopes to what Passes 2–3 added: `diff -u "$RC_SP/after-1.diff"
+  "$RC_SP/after-3.diff"`, not a fresh read of the touched files.
+- **Pass 4** still re-reads the **whole** cumulative diff — that guarantee is not
+  negotiable — but as one `git diff "$RC_BASE"`, not by reopening each file.
+- **Panel output stays in files.** `tribunal-review` hands you extracted findings;
+  do not pull its reviewers' raw transcripts into this cycle's context.
+- **Never paste the artifact into your reply.** The report cites `file:line` and
+  quotes at most the changed line.
+
 ### Verification gates (run after each pass's apply step)
 
 Don't hardcode a stack. Discover gates from the repo itself, every time:

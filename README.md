@@ -34,9 +34,11 @@ first time it is inconvenient.
 Sections scoped to a domain say so in the section and name no projects. Fill in
 your own.
 
-`RTK.md` documents a third-party CLI. It is reference material, deliberately not
-imported into `CLAUDE.md` — an `@` import pays its token cost on every session,
-and the hook that uses it works whether or not the model knows it exists.
+`RTK.md` documents a third-party CLI. Codex receives the operative rule directly
+from `AGENTS.md`; the reference stays in this checkout and is not installed or
+imported with an `@` path. Claude's rewrite hook works without loading it.
+Do not run `rtk init -g --codex` after installation: its generated `RTK.md` and
+`@` line are redundant, and Codex does not expand that line.
 
 ## `hooks/`
 

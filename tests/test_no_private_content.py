@@ -53,5 +53,17 @@ class TestNoPrivateContent(unittest.TestCase):
         self.assertEqual([], hits, "private content would be published:\n" + "\n".join(hits))
 
 
+class TestCodexGlobalRules(unittest.TestCase):
+    def test_rtk_rule_is_an_explicit_bullet_without_import(self):
+        agents = (ROOT / "rules" / "AGENTS.md").read_text()
+        rule = (
+            r"(?m)^- 已安装 RTK 时，shell 命令使用 `rtk` 前缀，减少无关输出；"
+            r"遇到不支持或必须保留原始输出的命令，使用 `rtk proxy <command>`。"
+            r"未安装时使用原生命令。$"
+        )
+        self.assertRegex(agents, rule)
+        self.assertNotRegex(agents, r"(?m)^\s*@")
+
+
 if __name__ == "__main__":
     unittest.main()

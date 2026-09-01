@@ -34,9 +34,9 @@ first time it is inconvenient.
 Sections scoped to a domain say so in the section and name no projects. Fill in
 your own.
 
-`RTK.md` documents a third-party CLI. It is reference material, deliberately not
-imported into `CLAUDE.md` — an `@` import pays its token cost on every session,
-and the hook that uses it works whether or not the model knows it exists.
+`RTK.md` documents a third-party CLI. Codex receives the operative rule directly
+from `AGENTS.md`; the reference is linked for inspection but is not imported with
+an `@` path. Claude's rewrite hook works without loading the reference.
 
 ## `hooks/`
 
@@ -124,6 +124,7 @@ Clone, then link each public surface directly from this checkout:
 
 - `rules/CLAUDE.md` → `~/.claude/CLAUDE.md`
 - `rules/AGENTS.md` → `~/.codex/AGENTS.md`
+- `rules/RTK.md` → `~/.codex/RTK.md`
 - `hooks/*.sh` → `~/.claude/hooks/*.sh`
 - `commands/*.md` → `~/.claude/commands/*.md`
 - `skills/*` → both `~/.claude/skills/*` and `~/.agents/skills/*`

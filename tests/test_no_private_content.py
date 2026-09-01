@@ -53,5 +53,12 @@ class TestNoPrivateContent(unittest.TestCase):
         self.assertEqual([], hits, "private content would be published:\n" + "\n".join(hits))
 
 
+class TestCodexGlobalRules(unittest.TestCase):
+    def test_rtk_rule_is_loaded_directly_without_machine_path(self):
+        agents = (ROOT / "rules" / "AGENTS.md").read_text()
+        self.assertIn("始终使用 `rtk` 前缀", agents)
+        self.assertNotRegex(agents, r"(?m)^@/")
+
+
 if __name__ == "__main__":
     unittest.main()

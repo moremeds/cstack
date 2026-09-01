@@ -50,7 +50,7 @@ Keep the existing assertion that public skills fan out to both runtime skill dir
 
 **Step 2: Run the focused tests and verify failure**
 
-Run: `python3 -m unittest tests.test_skill_links`
+Run: `python3 -m unittest discover -s tests -p 'test_skill_links.py'`
 
 Expected: FAIL because duplicate public files remain and rules/hooks/commands still source from the private repository.
 
@@ -131,7 +131,7 @@ Document that the private repository owns only machine/account state and consume
 Run:
 
 ```bash
-python3 -m unittest tests.test_skill_links
+python3 -m unittest discover -s tests -p 'test_skill_links.py'
 python3 -m unittest discover -s tests
 ```
 
@@ -170,7 +170,8 @@ State explicitly:
 
 Run: `python3 -m unittest discover -s tests`
 
-Expected: 24 tests PASS, including the private-content scan.
+Expected: 25 tests PASS, including the private-content scan and migrated hook
+contract.
 
 **Step 3: Commit the public documentation**
 

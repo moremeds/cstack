@@ -97,8 +97,8 @@ what is convenient:
 
 | | Holds | Why |
 | --- | --- | --- |
-| **public** (this repo) | rules, hooks, portable skills, the tests over them | nothing here is specific to one machine or one account |
-| **private** | rendered settings, plugin inventory, machine-local skills, external-project manifest | names accounts, paths, and private repos |
+| **public** (this repo) | rules, hooks, public commands, portable skills, the tests over them | nothing here is specific to one machine or one account |
+| **private** | rendered settings, plugin inventory, machine-local skills and commands, external-project manifest | names accounts, paths, and private repos |
 
 Two rules that outlive any particular layout:
 

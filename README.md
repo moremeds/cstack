@@ -14,6 +14,8 @@ rules/     what the agent is told           CLAUDE.md, AGENTS.md
    ↓  who enforces it?
 hooks/     mechanical interception          exit 2 blocks the tool call
    ↓  who applies it to real output?
+commands/  public runtime entry points       shared operational commands
+   ↓  who reviews their behavior?
 skills/    a multi-pass review chain        cross-model panel, per-pass fixes
    ↓  who keeps these honest?
 tests/     contract tests, mutation-checked
@@ -57,6 +59,11 @@ documented workflow really is direct-push. Unset by default: nothing is exempt.
 
 The two opt-in hooks stay silent until a project drops in its marker file. A hook
 that fires everywhere gets disabled everywhere.
+
+## `commands/`
+
+Public runtime commands that are safe to share across machines. Machine- or
+account-specific commands stay in the private bootstrap repository.
 
 ## `skills/`
 
@@ -113,14 +120,22 @@ python3 -m unittest discover -s tests
 
 ## Install
 
-Clone, then symlink `rules/` and `hooks/` into
-`~/.claude/`, and `skills/*` into both `~/.claude/skills/` and
-`~/.agents/skills/`. Symlinks, not copies — editing through the live path writes
-back here, so there is never a second copy to keep in step.
+Clone, then link each public surface directly from this checkout:
+
+- `rules/CLAUDE.md` → `~/.claude/CLAUDE.md`
+- `rules/AGENTS.md` → `~/.codex/AGENTS.md`
+- `hooks/*.sh` → `~/.claude/hooks/*.sh`
+- `commands/*.md` → `~/.claude/commands/*.md`
+- `skills/*` → both `~/.claude/skills/*` and `~/.agents/skills/*`
+
+Use symlinks, not copies. Editing through a live path then writes back here, so
+there is no second public copy to keep in step. A machine-private bootstrap may
+create these links, but it must consume this checkout rather than vendor the
+files.
 
 Machine-local and account-specific configuration (rendered settings, plugin
-inventory, private skills) belongs in a separate private repo. The split is by
-what can be published, not by what is convenient.
+inventory, private skills and commands) belongs in a separate private repo. The
+split is by what can be published, not by what is convenient.
 
 ## License
 

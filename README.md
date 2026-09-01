@@ -1,67 +1,114 @@
 # cstack
 
-An agent configuration that checks its own work.
+**C**laude Code, **C**odex, **C**ursor, and **C**henxi.
 
-Most shared agent configs are a list of rules and nothing else — nothing
-notices when a rule is ignored. This one is four layers, and each layer exists
-because the one above it cannot enforce itself:
+One agent configuration shared across three runtimes, plus the person who has to
+live with what they produce.
+
+Most shared agent configs are a list of rules and nothing else — nothing notices
+when a rule is ignored. This one is four layers, and each exists because the one
+above it cannot enforce itself:
 
 ```
-rules/          what the agent is told          CLAUDE.md, AGENTS.md
-   ↓ who enforces it?
-hooks/          mechanical interception         exit 2 blocks the tool call
-   ↓ who applies it to real output?
-skills/         a multi-pass review chain       cross-model panel, per-pass fixes
-   ↓ who keeps these honest?
-tests/          contract tests, mutation-checked
+rules/     what the agent is told           CLAUDE.md, AGENTS.md
+   ↓  who enforces it?
+hooks/     mechanical interception          exit 2 blocks the tool call
+   ↓  who applies it to real output?
+skills/    a multi-pass review chain        cross-model panel, per-pass fixes
+   ↓  who keeps these honest?
+tests/     contract tests, mutation-checked
 ```
 
-Built for Claude Code and Codex together. Neither runtime reads the other's
-skill directory, so anything meant for both lives in one place here and is
-symlinked into both.
+Claude Code and Codex do not read each other's skill directory, and a Claude
+slash command is invisible to Codex entirely. So anything meant for more than one
+runtime lives in one place here and is symlinked into each.
 
-## Layers
+## `rules/`
 
-### `rules/`
+`CLAUDE.md` and `AGENTS.md` — the standing instructions, written as rules with
+their reasons attached. A rule whose reason is missing gets rationalized away the
+first time it is inconvenient.
 
-`CLAUDE.md` and `AGENTS.md` — the standing instructions. Written as rules with
-their reasons attached, because a rule whose reason is missing gets rationalized
-away the first time it is inconvenient.
+Sections scoped to a domain say so in the section and name no projects. Fill in
+your own.
 
-Some sections are scoped to a domain (market-data work has its own
-no-fabrication rules). Those say so in the section, and name no projects — fill
-in your own.
+`RTK.md` documents a third-party CLI and is included as documentation only.
 
-### `hooks/`
+## `hooks/`
 
-Shell hooks that run before or after a tool call. `git-guard.sh` is the clearest
-case: global rules say "never push straight to master" and "never add AI
-attribution trailers to commits", and this hook exits 2 on either, feeding the
-reason back to the model. A rule the agent merely reads is a suggestion; a rule
-that returns exit 2 is a constraint.
+Rules the agent merely reads are suggestions. These return exit 2, which blocks
+the tool call and feeds the reason back to the model.
 
-Set `GIT_GUARD_PR_EXEMPT` (colon-separated repo paths) for repos whose
-documented workflow really is direct-push. Unset by default — nothing is exempt.
+| Hook                       | Does                                                                                                              |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `git-guard.sh`             | blocks direct pushes to `master`/`main`, blocks AI attribution trailers in commit messages, warns on `git add -A` |
+| `ci-green-before-merge.sh` | intercepts `gh pr merge`, runs `gh pr checks` first, blocks while anything is failing or pending                  |
+| `format-on-write.sh`       | formats by file extension after every write; always exits 0, so a missing formatter never blocks an edit          |
+| `lint-on-edit.sh`          | lints the edited file, capped at 10 lines of output so the model can actually react to it                         |
+| `test-on-edit.sh`          | runs the nearest project's tests; opt-in per project via a `.claude/test-on-edit` marker                          |
+| `auto-commit.sh`           | commits on stop; opt-in per project via a `.claude/auto-commit` marker                                            |
+| `log-commands.sh`          | appends every Bash command to a timestamped log                                                                   |
+| `rtk-rewrite.sh`           | rewrites commands through `rtk`, a third-party token-saving CLI proxy, when it is installed                                  |
 
-### `skills/`
+`git-guard.sh` reads `GIT_GUARD_PR_EXEMPT` — colon-separated repo paths whose
+documented workflow really is direct-push. Unset by default: nothing is exempt.
 
-**Pending** — the review chain (`tribunal-review`, `review-cycle`,
-`execute-plan`) lands here once its current round of edits is finished. Holding
-the move rather than copying mid-flight, because two copies drift and the drift
-is silent.
+The two opt-in hooks stay silent until a project drops in its marker file. A hook
+that fires everywhere gets disabled everywhere.
 
-### `tests/`
+## `skills/`
 
-Contract tests over the config itself. Two rules they follow:
+**Pending.** The review chain — `tribunal-review`, `review-cycle`,
+`execute-plan` — lands here once its current round of edits finishes. It is being
+held rather than copied mid-flight, because two copies drift and the drift is
+silent.
 
-1. **Every assertion is mutation-checked.** It must fail on a tree where the
-   thing it protects is broken. Assertions that pass either way are the specific
-   bug this suite was written after finding — four of them, in one review round,
-   each with a docstring correctly describing a contract it did not actually
-   check.
-2. **`test_no_private_content.py` runs before anything is published.** This repo
-   is public, and a private marker reaching a commit is unfixable: deleting the
-   file later leaves the blob reachable in history.
+What arrives with it:
+
+**`tribunal-review`** runs a cross-model panel. Whoever invokes it orchestrates
+and also votes; the others review independently and findings merge by weighted
+consensus.
+
+| Seat          | Weight |
+| ------------- | ------ |
+| orchestrator  | 1.0    |
+| peer runtime  | 1.0    |
+| Cursor / Grok | 0.95   |
+| Gemini        | 0.5    |
+
+Two reviewers agreeing clears consensus; one alone goes to debate and rebuttal.
+Every panelist is probed for liveness before use — `which` is not enough. An
+installed CLI can be logged out, unlicensed, or sandboxed away from its own
+credentials, and a silently missing seat turns a "tribunal" into a solo review
+that still reports a verdict.
+
+**`review-cycle`** wraps that in six passes and reports a **pass ledger**: one
+fixed row per pass, which cannot be omitted. Across 12 logged runs the verdict
+line appeared 12 times while the assumption check behind it appeared 6. Nothing
+errored — the weak runs just omitted the section and looked identical to the
+thorough ones.
+
+## `tests/`
+
+Contract tests over the configuration itself, following two rules.
+
+**Every assertion is mutation-checked.** It must fail on a tree where the thing
+it protects is broken. This is not a style preference — one review round found
+four assertions here that each had a docstring correctly describing a contract,
+and each passed on a tree where that contract was violated:
+
+```python
+self.assertIn("tribunal-review", body)   # green with the call reverted
+```
+
+The word appeared elsewhere in the file. The test knew what it was for and
+checked something else.
+
+**`test_no_private_content.py` runs before anything is published.** This repo is
+public and a private marker reaching a commit is unfixable: deleting the file
+later leaves the blob reachable in history, and a public repo is indexed within
+minutes. Absolute home paths, bare IPs, email addresses, SSH remotes. Add your
+own before publishing — employer, private orgs, internal hostnames.
 
 ```bash
 python3 -m unittest discover -s tests
@@ -69,9 +116,15 @@ python3 -m unittest discover -s tests
 
 ## Install
 
-Not yet — the install path arrives with `skills/`.
+Arrives with `skills/`. The shape: clone, then symlink `rules/` and `hooks/` into
+`~/.claude/`, and `skills/*` into both `~/.claude/skills/` and
+`~/.agents/skills/`. Symlinks, not copies — editing through the live path writes
+back here, so there is never a second copy to keep in step.
+
+Machine-local and account-specific configuration (rendered settings, plugin
+inventory, private skills) belongs in a separate private repo. The split is by
+what can be published, not by what is convenient.
 
 ## License
 
-MIT. `rules/RTK.md` documents a third-party CLI and is included as
-documentation only.
+MIT.

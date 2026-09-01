@@ -6,6 +6,9 @@ worse than no test — it certifies nothing while reading as coverage.
 """
 
 import re
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -266,14 +269,20 @@ class TestPeerClaudeIsSandboxed(unittest.TestCase):
         self.assertNotIn("--permission-mode plan", cmd,
                          "plan mode leaks a file into ~/.claude/plans/ and can swallow the report")
 
-    def test_step0_probe_uses_the_same_sandbox_flags(self):
-        """A probe run under different flags proves the peer is alive under
-        flags the peer will not actually use."""
+    def test_no_separate_liveness_round(self):
+        """The launch runs the exact command a probe could only approximate, so
+        a probe round is pure cost. What must survive is the reason it existed:
+        availability is never inferred, it is observed."""
         body = TRIBUNAL.read_text()
-        probe = [l for l in body.splitlines() if "Reply with exactly: OK" in l and "claude" in l]
-        self.assertTrue(probe, "no Claude liveness probe in Step 0")
-        for flag in ("--restricted", "--strict-mcp-config", "-u ANTHROPIC_API_KEY"):
-            self.assertIn(flag, probe[0], f"probe omits {flag}, so it tests a different command")
+        step0 = body[body.index("## Step 0"):body.index("## Step 1")]
+        self.assertNotIn("Reply with exactly: OK", body,
+                         "a liveness round is still prescribed somewhere")
+        self.assertIn("The launch is the probe.", step0,
+                      "Step 0 no longer says where availability is decided")
+        self.assertRegex(step0, r"(?is)`which gemini` succeeding proves nothing",
+                         "installed-but-unlicensed can pass as available again")
+        self.assertRegex(step0, r"(?is)neither does the\s+orchestrator's name",
+                         "availability may be inferred from the runtime name again")
 
 
 class TestCursorPeerIsSandboxed(unittest.TestCase):
@@ -315,13 +324,23 @@ class TestCursorPeerIsSandboxed(unittest.TestCase):
         self.assertRegex(body, r'wait "\$PANEL_PID"',
                          "captured panel PIDs are never collected")
 
-    def test_probe_matches_the_launch(self):
+
+class TestSeatAvailability(unittest.TestCase):
+    """With the probe gone, a seat that never ran and a seat that found nothing
+    look identical — one empty file. Conflating them reports a dead panel as a
+    clean review, which is the exact failure this skill exists to prevent."""
+
+    def test_unavailability_is_decided_at_collection(self):
         body = TRIBUNAL.read_text()
-        probe = [l for l in body.splitlines()
-                 if "Reply with exactly: OK" in l and "cursor-agent" in l]
-        self.assertTrue(probe, "no Cursor liveness probe in Step 0")
-        for flag in ("--trust", "--mode ask", "--model cursor-grok-4.6"):
-            self.assertIn(flag, probe[0], f"probe omits {flag}, so it tests a different command")
+        merge = body[body.index("## Step 4"):body.index("## Step 5")]
+        self.assertRegex(merge, r"(?is)empty or absent `\.txt`.*never answered",
+                         "an absent reviewer output is not classified as a missing seat")
+        self.assertRegex(merge, r"(?is)not\*\* a clean review",
+                         "a seat that never ran can still be scored as finding nothing")
+        self.assertRegex(merge, r"(?is)non-empty `\.txt`, empty extraction",
+                         "a reviewer that ignored the output format is silently dropped")
+        self.assertRegex(merge, r"(?is)read its `\.log`",
+                         "the failure reason is never recovered for the header")
 
 
 class TestPanelWeights(unittest.TestCase):
@@ -376,6 +395,123 @@ class TestPanelWeights(unittest.TestCase):
         step0 = body[body.index("## Step 0"):body.index("## Step 1")]
         self.assertNotIn("unlicensed on this machine", step0,
                          "probe-first routing is overridden by a dated Gemini assumption")
+
+
+class TestPromptAssembler(unittest.TestCase):
+    """The template's bytes must reach the panelist without passing through the
+    orchestrator's context. Hand-building the prompt costs ~10KB per run and
+    drifts from review.md silently."""
+
+    ASSEMBLE = ROOT / "skills" / "tribunal-review" / "prompts" / "assemble.py"
+
+    def run_it(self, *args):
+        with tempfile.NamedTemporaryFile("w", suffix=".diff", delete=False) as fh:
+            fh.write("--- a/x\n+++ b/x\n+SENTINEL_PAYLOAD\n")
+            content = fh.name
+        out = subprocess.run(
+            [sys.executable, str(self.ASSEMBLE), "--reviewer", "Codex",
+             "--specialty", "BUG DETECTION", "--content", content, *args],
+            capture_output=True, text=True, check=True)
+        return out.stdout
+
+    def test_exactly_one_block_per_class_and_no_placeholders(self):
+        for cls, marker in (("code", "(code targets"), ("plan", "(plan/spec targets"),
+                            ("prose", "(prose targets")):
+            body = self.run_it("--class", cls)
+            how = [l for l in body.splitlines() if l.startswith("=== HOW TO REVIEW (")]
+            sev = [l for l in body.splitlines() if l.startswith("SEVERITY (")]
+            self.assertEqual(len(how), 1, f"{cls}: {len(how)} review blocks, want 1")
+            self.assertEqual(len(sev), 1, f"{cls}: {len(sev)} severity scales, want 1")
+            self.assertIn(marker, how[0])
+            self.assertIn(marker, sev[0])
+            self.assertNotRegex(body, r"\{[a-z_]+\}", f"{cls}: unsubstituted placeholder")
+            self.assertIn("SENTINEL_PAYLOAD", body, f"{cls}: the target never reached the prompt")
+
+    def test_no_focus_omits_the_block_rather_than_sending_an_empty_one(self):
+        self.assertNotIn("=== FOCUS ===", self.run_it("--class", "code"))
+        self.assertNotIn("=== FOCUS ===", self.run_it("--class", "code", "--focus", "   "))
+
+    def test_focus_is_injected_verbatim(self):
+        body = self.run_it("--class", "code", "--focus", "并发安全和资金计算精度")
+        self.assertIn("=== FOCUS ===", body)
+        self.assertIn("并发安全和资金计算精度", body, "focus was paraphrased or dropped")
+
+    def test_dropping_a_block_does_not_eat_the_next_section(self):
+        """The block cutter is a state machine; an off-by-one swallows the
+        mandatory sweep or the output format along with the unwanted block."""
+        body = self.run_it("--class", "code")
+        for section in ("=== YOUR ROLE ===", "=== PROJECT CONTEXT ===",
+                        "=== CODING STANDARDS ===", "=== REVIEW TARGET (",
+                        "=== OVER-ENGINEERING SWEEP (mandatory) ===",
+                        "=== OUTPUT FORMAT ===", "=== RULES ===", "=== DO NOT FLAG ==="):
+            self.assertIn(section, body, f"{section} was cut away with a sibling block")
+
+    def test_skill_calls_the_assembler_instead_of_writing_prompts_by_hand(self):
+        body = TRIBUNAL.read_text()
+        launch = body[body.index("## Step 3"):body.index("## Step 4")]
+        self.assertRegex(launch, r'python3 "\$TR/prompts/assemble\.py"',
+                         "Step 3 no longer routes prompt building through the assembler")
+        for reviewer in ("prompt-codex.md", "prompt-cursor.md"):
+            self.assertRegex(launch, r"assemble .*\"\$SP/" + reviewer.replace(".", r"\.") + r"\"",
+                             f"{reviewer} is not produced by the assembler")
+        parse = body[body.index("## Step 1"):body.index("## Step 2")]
+        for var in ("TARGET_CLASS", "FOCUS", "REVIEW_MODE"):
+            self.assertIn(var, parse,
+                          f"Step 3 consumes ${var} but Step 1 never records it")
+
+
+class TestContextDiscipline(unittest.TestCase):
+    """Saving context must never shrink what a pass actually looks at."""
+
+    def test_panel_output_is_extracted_not_dumped(self):
+        merge = TRIBUNAL.read_text()
+        merge = merge[merge.index("## Step 4"):merge.index("## Step 5")]
+        self.assertIn("ISSUE-", merge, "no extraction pattern for the panel reports")
+        self.assertRegex(merge, r"(?i)never `?cat`? a reviewer",
+                         "nothing stops a full dump of every panelist transcript")
+        self.assertRegex(merge, r"(?is)empty extraction.*read its raw text",
+                         "a reviewer that ignored the output format is silently lost")
+
+    def test_pass4_still_reads_the_whole_cumulative_diff(self):
+        body = CYCLE.read_text()
+        ctx = body[body.index("### Context discipline"):body.index("### Verification gates")]
+        self.assertIn("RC_BASE", ctx, "no pinned base, so later passes re-read whole files")
+        self.assertRegex(ctx, r"(?is)Pass 4.*whole.*cumulative diff",
+                         "the context rules let Pass 4 review a slice instead of the whole diff")
+        pass4 = body[body.index("### Pass 4"):body.index("### Pass 5")]
+        self.assertRegex(pass4, r"(?is)re-read the \*\*cumulative diff",
+                         "Pass 4 no longer re-reads the cumulative diff")
+        self.assertRegex(pass4, r"(?is)not any single pass",
+                         "Pass 4 may now settle for one pass's slice")
+
+
+class TestNonBlockingWait(unittest.TestCase):
+    """Measured: panel 9-10 min, orchestrator's own review 2-3 min. The gap is
+    the largest block of idle wall-clock in the cycle and the window where an
+    edit would invalidate the panel's snapshot."""
+
+    def setUp(self):
+        body = TRIBUNAL.read_text()
+        self.launch = body[body.index("## Step 3"):body.index("## Step 4")]
+
+    def test_claude_code_waits_in_the_background(self):
+        self.assertIn("run_in_background", self.launch,
+                      "the wait pins the session in a foreground poll")
+        self.assertRegex(self.launch, r"(?is)must not be spent in a foreground poll",
+                         "nothing forbids the foreground sleep-poll that was measured")
+
+    def test_codex_keeps_the_shell_loop(self):
+        self.assertRegex(self.launch, r"(?is)\*\*Codex:\*\*.*shell loop",
+                         "the portable runtime lost its only way to wait")
+
+    def test_the_tree_is_frozen_while_the_panel_runs(self):
+        self.assertRegex(self.launch, r"(?is)not touch the working tree while the panel",
+                         "fixes may be applied under a peer that is reading the real files")
+
+    def test_the_gap_has_work_assigned(self):
+        gap = self.launch[self.launch.index("Spend the gap"):]
+        for item in ("own full review", "Ground", "gates"):
+            self.assertIn(item, gap, f"gap protocol does not cover {item!r}")
 
 
 if __name__ == "__main__":

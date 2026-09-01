@@ -13,8 +13,9 @@ rules, or a matching regular-file copy is drift.
 - `rules/RTK.md` remains the canonical RTK reference.
 - The private bootstrap links `~/.codex/RTK.md` to `rules/RTK.md` and audits that
   exact target alongside the existing public surfaces.
-- Missing cstack input or a non-symlink live copy fails closed before bootstrap
-  can establish a second source.
+- Missing cstack input fails closed before bootstrap mutates live config. A
+  non-symlink live copy is reported as drift; bootstrap moves it to the
+  recoverable trash directory before creating the canonical link.
 
 ## Rejected alternatives
 
@@ -28,7 +29,8 @@ rules, or a matching regular-file copy is drift.
 
 ## Verification
 
-- Contract tests reject a copied or incorrectly targeted `~/.codex/RTK.md`.
+- Contract tests require a copied or incorrectly targeted `~/.codex/RTK.md` to
+  be reported as drift rather than accepted as equivalent content.
 - Bootstrap tests require the RTK source before mutation and create the link.
 - The sharing audit reports the RTK entry as `ok` only for the canonical target.
 - A fresh read-only Codex process reports the RTK rule as present without reading

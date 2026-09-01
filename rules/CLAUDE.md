@@ -62,7 +62,7 @@ Every read, write, and reply costs tokens. Save them by reading and saying less,
 
 - Locate before reading: grep / symbol search first, then read only the needed line range. Never `cat` a whole file; do not read a file over 300 lines in full unless the task truly needs it.
 - Do not re-read a file already read, or re-paste content already in context.
-- Filter command output before looking at it (`head` / `tail` / `grep` / `wc` / `--quiet`); never pour a full log, diff, or test run into context. (RTK does this automatically for hooked commands — the rule still applies to everything else.)
+- Filter command output before looking at it (`head` / `tail` / `grep` / `wc` / `--quiet`); never pour a full log, diff, or test run into context.
 - Replies carry the conclusion and the necessary evidence only: no restating file contents, no echoing the user's words, no listing options that were not taken.
 - No "just in case" subagents, tool calls, or lookups. Before each call ask: if I skip this, does the task stall? (Delegation required by _Fable orchestration mode_ is not "just in case".)
 - When context grows, summarize / compact proactively; a summary keeps only task state, files changed, blockers, and next steps.
@@ -109,5 +109,3 @@ Two rules that outlive any particular layout:
   `~/.claude/skills/` and `~/.agents/skills/` is scanned as a skill, so a backup
   copy becomes a second live skill shadowing the first. Put them outside the
   tree, under a dated directory.
-
-@RTK.md

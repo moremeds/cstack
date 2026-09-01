@@ -3,25 +3,25 @@
 ## Goal
 
 Make RTK guidance active in fresh Codex sessions while preserving cstack as the
-only public source. A generated local `RTK.md`, a machine-specific path in public
-rules, or a matching regular-file copy is drift.
+only public source. A generated local `RTK.md` or an `@` path in public rules is
+an unnecessary second runtime surface and therefore drift.
 
 ## Chosen design
 
 - `rules/AGENTS.md` states the RTK shell-prefix rule directly because Codex loads
   the `AGENTS.md` instruction chain and does not expand a bare `@path` line.
-- `rules/RTK.md` remains the canonical RTK reference.
-- The private bootstrap links `~/.codex/RTK.md` to `rules/RTK.md` and audits that
-  exact target alongside the existing public surfaces.
-- Missing cstack input fails closed before bootstrap mutates live config. A
-  non-symlink live copy is reported as drift; bootstrap moves it to the
-  recoverable trash directory before creating the canonical link.
+- `rules/RTK.md` remains reference material inside cstack; it is not installed
+  into the Codex home because Codex does not load it.
+- The private bootstrap remains unchanged. Its existing `AGENTS.md` symlink is
+  the only Codex global-rules entry point.
 
 ## Rejected alternatives
 
 - Keep the output of `rtk init -g --codex`: it creates a local copy and writes a
   machine-specific path into public rules; a fresh-session probe showed the rule
   was not loaded.
+- Link `~/.codex/RTK.md` back to cstack: the link would not drift by content, but
+  it would still be an unused runtime path requiring installation and auditing.
 - Put RTK in `AGENTS.override.md`: Codex would select the override instead of the
   shared global `AGENTS.md`, hiding the rest of the global rules.
 - Generate a combined global file: that would replace a direct source link with
@@ -29,9 +29,9 @@ rules, or a matching regular-file copy is drift.
 
 ## Verification
 
-- Contract tests require a copied or incorrectly targeted `~/.codex/RTK.md` to
-  be reported as drift rather than accepted as equivalent content.
-- Bootstrap tests require the RTK source before mutation and create the link.
-- The sharing audit reports the RTK entry as `ok` only for the canonical target.
+- A contract test pins the exact operative RTK bullet and rejects every `@`
+  import form, including relative and machine-specific paths.
+- The existing sharing audit continues to cover the sole live Codex global-rules
+  entry point, `~/.codex/AGENTS.md`.
 - A fresh read-only Codex process reports the RTK rule as present without reading
   files or running tools.

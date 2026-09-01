@@ -54,10 +54,14 @@ class TestNoPrivateContent(unittest.TestCase):
 
 
 class TestCodexGlobalRules(unittest.TestCase):
-    def test_rtk_rule_is_loaded_directly_without_machine_path(self):
+    def test_rtk_rule_is_an_explicit_bullet_without_import(self):
         agents = (ROOT / "rules" / "AGENTS.md").read_text()
-        self.assertIn("始终使用 `rtk` 前缀", agents)
-        self.assertNotRegex(agents, r"(?m)^@/")
+        rule = (
+            r"(?m)^- shell 命令始终使用 `rtk` 前缀，减少无关输出；"
+            r"遇到不支持或必须保留原始输出的命令，使用 `rtk proxy <command>`。$"
+        )
+        self.assertRegex(agents, rule)
+        self.assertNotRegex(agents, r"(?m)^\s*@")
 
 
 if __name__ == "__main__":

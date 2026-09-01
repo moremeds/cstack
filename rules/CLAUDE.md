@@ -85,20 +85,29 @@ Every read, write, and reply costs tokens. Save them by reading and saying less,
 - 单文件几行的琐碎改动可以自己做；超出这个量级就派出去。
 - 派发时给 subagent 完整上下文：目标、非目标、文件范围、验收标准。派出后不要自己再重复做同一件事。
 
-## Claude Code config sync (`~/clauded/`)
+## Config sync
 
-This Mac's `~/.claude/` is synced across machines via the git repo `~/clauded/` —
-most files under `~/.claude/` (this `CLAUDE.md` included) and `~/.agents/skills/`
-are **symlinks into `~/clauded/`**, so edits write through; commit + push in
-`~/clauded` afterwards. Adding/removing a skill or changing a setting goes through
-`bash ~/clauded/bootstrap.sh` — **never edit `~/.claude/settings.json` directly**
-(it is rendered from `claude/settings.json.tmpl`). Backups must never live inside
-`~/.claude/skills/` or `~/.agents/skills/` (every subdir scans as a skill); use
-`~/.clauded-trash/<stamp>/`. Full step-by-step procedures: `~/clauded/README.md`.
+This file is not stored where the agent reads it. `~/.claude/`, `~/.agents/skills/`
+and this `CLAUDE.md` are **symlinks into a git repo**, so editing through the live
+path writes into the repo — then commit there. Nothing is copied into place, so
+there is never a second copy to keep in step.
+
+The config is split across two repos, by what can be published rather than by
+what is convenient:
+
+| | Holds | Why |
+| --- | --- | --- |
+| **public** (this repo) | rules, hooks, portable skills, the tests over them | nothing here is specific to one machine or one account |
+| **private** | rendered settings, plugin inventory, machine-local skills, external-project manifest | names accounts, paths, and private repos |
+
+Two rules that outlive any particular layout:
+
+- **Never hand-edit a generated file.** `~/.claude/settings.json` is rendered
+  from a template, and Claude Code rewrites it on permission grants; an edit to
+  the live file is lost on the next render, silently.
+- **Backups must never live inside a skills directory.** Every subdirectory of
+  `~/.claude/skills/` and `~/.agents/skills/` is scanned as a skill, so a backup
+  copy becomes a second live skill shadowing the first. Put them outside the
+  tree, under a dated directory.
 
 @RTK.md
-
-# graphify
-
-- **graphify** (`~/.claude/skills/graphify/SKILL.md`) - any input to knowledge graph. Trigger: `/graphify`
-  When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.

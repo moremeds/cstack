@@ -58,12 +58,7 @@ that fires everywhere gets disabled everywhere.
 
 ## `skills/`
 
-**Pending.** The review chain — `tribunal-review`, `review-cycle`,
-`execute-plan` — lands here once its current round of edits finishes. It is being
-held rather than copied mid-flight, because two copies drift and the drift is
-silent.
-
-What arrives with it:
+The review chain, three skills that call each other:
 
 **`tribunal-review`** runs a cross-model panel. Whoever invokes it orchestrates
 and also votes; the others review independently and findings merge by weighted
@@ -116,7 +111,7 @@ python3 -m unittest discover -s tests
 
 ## Install
 
-Arrives with `skills/`. The shape: clone, then symlink `rules/` and `hooks/` into
+Clone, then symlink `rules/` and `hooks/` into
 `~/.claude/`, and `skills/*` into both `~/.claude/skills/` and
 `~/.agents/skills/`. Symlinks, not copies — editing through the live path writes
 back here, so there is never a second copy to keep in step.

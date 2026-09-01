@@ -44,7 +44,9 @@ command. Contract tests enforce both sides of the boundary:
 1. public copies cannot reappear in the private tree;
 2. every public bootstrap surface must point at `CSTACK_REPO`;
 3. shared skills must still fan out to both Codex and Claude;
-4. the bootstrap remains syntactically valid and idempotent.
+4. the bootstrap remains syntactically valid.
+
+Live verification, rather than a repository-only unit test, covers idempotence.
 
 `cstack` keeps its existing public-content and review-chain tests. Its README
 documents the complete install surface, including Codex rules and public
@@ -54,6 +56,9 @@ commands.
 
 - Run both repositories' unit-test suites.
 - Run the bootstrap twice.
+- Confirm the second run creates no new public-symlink recovery records. The
+  existing rendered-settings backup on each run is private state and is not a
+  public-link drift signal.
 - Resolve every live public symlink and confirm it is under the `cstack`
   checkout.
 - Compare every live public file with its source.

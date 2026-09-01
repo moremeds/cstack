@@ -18,35 +18,76 @@
 
 **Step 1: Replace the skill-only migration assertions**
 
-Expand the existing migrated-skill contract into two focused tests:
+Expand the existing migrated-skill contract into two focused tests. Use an
+explicit allowlist for private-owned config paths and private skill directories,
+so any new private ownership requires a deliberate contract update:
 
 ```python
-PUBLIC_COPIES = (
-    "claude/CLAUDE.md",
-    "claude/RTK.md",
-    "codex/AGENTS.md",
-    "claude/commands/branch-audit.md",
-)
-
 def test_no_local_public_copies(self):
-    returned = [path for path in self.PUBLIC_COPIES if (ROOT / path).exists()]
-    returned += [str(path.relative_to(ROOT)) for path in (ROOT / "claude/hooks").glob("*.sh")]
-    self.assertEqual([], returned)
+    config_files = {
+        str(path.relative_to(ROOT))
+        for root in (ROOT / "claude", ROOT / "codex")
+        if root.exists()
+        for path in root.rglob("*")
+        if path.is_file()
+    }
+    self.assertEqual(PRIVATE_CONFIG_FILES, config_files)
+
+    skills = {
+        str(path.relative_to(ROOT))
+        for root in (ROOT / "agents-skills", ROOT / "claude-skills")
+        for path in root.iterdir()
+        if path.is_dir()
+    }
+    self.assertEqual(PRIVATE_SKILLS, skills)
+    for name in FORBIDDEN_PUBLIC_NODES:
+        path = ROOT / name
+        self.assertFalse(path.is_symlink())
+        if path.is_dir():
+            self.assertFalse(any(path.iterdir()))
+        else:
+            self.assertFalse(path.exists())
 
 def test_bootstrap_sources_every_public_surface_from_cstack(self):
     body = (ROOT / "bootstrap.sh").read_text()
-    self.assertIn('CSTACK_REPO="${CSTACK_REPO:-$HOME/projects/cstack}"', body)
     for source in (
-        "$CSTACK_REPO/rules/CLAUDE.md",
-        "$CSTACK_REPO/rules/AGENTS.md",
-        '"$CSTACK_REPO"/hooks/*.sh',
-        '"$CSTACK_REPO"/commands/*.md',
-        '"$CSTACK_REPO"/skills/*/',
+        'link "$CSTACK_REPO/rules/CLAUDE.md" "$HOME/.claude/CLAUDE.md"',
+        'link "$CSTACK_REPO/rules/AGENTS.md" "$HOME/.codex/AGENTS.md"',
+        'for h in "$CSTACK_REPO"/hooks/*.sh; do',
+        'for c in "$CSTACK_REPO"/commands/*.md; do',
+        'for s in "$CSTACK_REPO"/skills/*/; do',
     ):
         self.assertIn(source, body)
+
+    require = body.index('if [[ ! -d "$CSTACK_REPO" ]]')
+    require_end = body.index("\nfi", require)
+    required_surfaces = body.index(
+        "for required in rules/CLAUDE.md rules/AGENTS.md hooks commands skills; do"
+    )
+    required_surfaces_end = body.index("\ndone", required_surfaces)
+    first_public_link = body.index('link "$CSTACK_REPO')
+    self.assertLess(require, first_public_link)
+    self.assertIn("exit 1", body[require:require_end])
+    self.assertIn("exit 1", body[required_surfaces:required_surfaces_end])
+
+    for call in (
+        'assert_no_name_collision command "$CSTACK_REPO/commands" "$REPO/claude/commands"',
+        'assert_no_name_collision skill "$CSTACK_REPO/skills" "$REPO/agents-skills"',
+        'assert_no_name_collision skill "$CSTACK_REPO/skills" "$REPO/claude-skills"',
+    ):
+        self.assertLess(body.index(call), first_public_link)
+
+    for stale_source in (
+        '$REPO/claude/CLAUDE.md',
+        '$REPO/codex/AGENTS.md',
+        '"$REPO"/claude/hooks/*.sh',
+    ):
+        self.assertNotIn(stale_source, body)
 ```
 
-Keep the existing assertion that public skills fan out to both runtime skill directories and that the required-project manifest names `projects/cstack`.
+Scope the fan-out assertion to the `for s in "$CSTACK_REPO"/skills/*/` loop
+itself, not a larger block that also contains private skill loops. Keep the
+required-project manifest assertion.
 
 **Step 2: Run the focused tests and verify failure**
 
@@ -69,6 +110,7 @@ git commit -m "test: enforce cstack public config ownership"
 
 - Modify: private bootstrap repo `bootstrap.sh`
 - Modify: private bootstrap repo `README.md`
+- Modify: private bootstrap repo `scripts/audit-sharing.py`
 - Delete: private bootstrap repo `claude/CLAUDE.md`
 - Delete: private bootstrap repo `claude/RTK.md`
 - Delete: private bootstrap repo `codex/AGENTS.md`
@@ -93,6 +135,9 @@ if [[ ! -d "$CSTACK_REPO" ]]; then
 fi
 ```
 
+Also reject public/private command or skill basename collisions before the
+first live link is changed.
+
 **Step 2: Route every public surface through `CSTACK_REPO`**
 
 Use these sources:
@@ -102,6 +147,7 @@ link "$CSTACK_REPO/rules/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 link "$CSTACK_REPO/rules/AGENTS.md" "$HOME/.codex/AGENTS.md"
 
 for h in "$CSTACK_REPO"/hooks/*.sh; do
+  [[ -e "$h" ]] || continue
   link "$h" "$HOME/.claude/hooks/$(basename "$h")"
 done
 
@@ -117,6 +163,10 @@ done
 ```
 
 Keep a separate loop for private commands such as `boot-local.md`. Remove the old warning-only cstack skill block because `cstack` is now required and resolved once.
+
+Update `scripts/audit-sharing.py` so its managed-file checks compare live global
+rules, hooks, commands, and both runtime skill links to their corresponding
+`CSTACK_REPO` sources; remove the obsolete live `RTK.md` check.
 
 **Step 3: Remove duplicate public files**
 
@@ -170,8 +220,7 @@ State explicitly:
 
 Run: `python3 -m unittest discover -s tests`
 
-Expected: 25 tests PASS, including the private-content scan and migrated hook
-contract.
+Expected: 24 tests PASS, including the private-content scan.
 
 **Step 3: Commit the public documentation**
 
@@ -192,7 +241,9 @@ git commit -m "docs: define complete public install surface"
 
 Run the private bootstrap with `CSTACK_REPO` pointing at the cstack feature worktree and `CLAUDED_REPO` pointing at the private feature worktree. Run the identical command twice.
 
-Expected: both runs succeed; the second run preserves the same targets and does not create new recovery records.
+Expected: both runs succeed; the second run preserves the same targets and does
+not create new public-symlink recovery records. Its rendered-settings backup is
+expected private-state behavior.
 
 **Step 2: Audit resolved targets**
 

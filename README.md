@@ -134,8 +134,8 @@ create these links, but it must consume this checkout rather than vendor the
 files.
 
 Machine-local and account-specific configuration (rendered settings, plugin
-inventory, private skills) belongs in a separate private repo. The split is by
-what can be published, not by what is convenient.
+inventory, private skills and commands) belongs in a separate private repo. The
+split is by what can be published, not by what is convenient.
 
 ## License
 

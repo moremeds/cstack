@@ -37,6 +37,8 @@ your own.
 `RTK.md` documents a third-party CLI. Codex receives the operative rule directly
 from `AGENTS.md`; the reference stays in this checkout and is not installed or
 imported with an `@` path. Claude's rewrite hook works without loading it.
+Do not run `rtk init -g --codex` after installation: its generated `RTK.md` and
+`@` line are redundant, and Codex does not expand that line.
 
 ## `hooks/`
 

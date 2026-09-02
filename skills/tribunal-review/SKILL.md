@@ -15,7 +15,7 @@ is real. A finding only one raises is a hypothesis that must survive debate.
 
 Determine which runtime you are, then the panel is everyone else:
 
-| You are | Your peer (1.0) | Cross-lineage (0.90) | Advisor (0.5) |
+| You are | Your peer (1.0) | Cross-lineage (1.0) | Advisor (0.5) |
 | --- | --- | --- | --- |
 | **Claude Code** | Codex — `codex exec -s read-only` | Cursor/Grok — `cursor-agent -p` | Gemini — `gemini -p` |
 | **Codex** | Claude — `claude -p` | Cursor/Grok — `cursor-agent -p` | Gemini — `gemini -p` |
@@ -421,31 +421,35 @@ ways = one issue citing both. Severity disagreement = take the highest, note it.
 
 | Agreement                 | Weight         | Route                  |
 | ------------------------- | -------------- | ---------------------- |
-| all four                     | 3.40 UNANIMOUS | consensus              |
-| both trusted (you + peer)    | 2.0 STRONG     | consensus              |
-| one trusted + Cursor/Grok    | 1.90 STRONG    | consensus              |
-| one trusted + Gemini         | 1.5 SUFFICIENT | consensus              |
-| Cursor/Grok + Gemini         | 1.40 SUFFICIENT| consensus              |
-| one trusted alone            | 1.0            | **contested** → debate |
-| Cursor/Grok alone            | 0.90           | **contested** → debate |
+| all four                     | 3.5 UNANIMOUS  | consensus              |
+| any two full-weight seats    | 2.0 STRONG     | consensus              |
+| one full-weight + Gemini     | 1.5 SUFFICIENT | consensus              |
+| one full-weight alone        | 1.0            | **contested** → debate |
 | Gemini alone                 | 0.5            | **contested** → debate |
 
-Cursor/Grok sits at **0.90 deliberately**, not 1.0: near-peer, but never able to
-do alone what a trusted reviewer does alone. Pair it with anyone and the pair
-clears consensus; leave it alone and it argues its case like any single voice.
+Three seats carry **1.0**: you, your peer, and Cursor/Grok. Only Gemini is
+discounted, because it is an advisor that does not run inside the repository.
 
-The 0.05 below a plain near-peer discount is the seat's session reuse. Cursor is
-the one panelist whose rounds share a conversation, so by the time it rebuts it
-remembers the position it took in review — it defends its own finding rather
-than re-deriving it. That is right for a rebuttal and wrong for an independent
-vote, and the weight carries the difference.
+Cursor/Grok held 0.90 until 2026-09-02 on the theory that its rounds share one
+conversation, so it would defend its review position rather than re-derive it.
+The first run that actually measured this found the opposite: asked to debate a
+finding it had raised itself, it re-derived the question and ruled its own
+finding INVALID. Session memory is real — confirmed on a third turn, told to
+answer without tools, it recalled its finding count and quoted its own title
+verbatim — but the bias that memory was supposed to cause did not appear. A
+discount with no evidence behind it is just a number, so the seat is a peer.
+
+**None of these weights are calibrated.** They encode lineage independence, not
+measured accuracy: three seats that reason from different training runs, and one
+that only advises. The honest way to change them is a hit-rate — findings that
+survived verification over findings raised — not another argument.
 
 Confidence filter, applied **after** dedup and **before** debate:
 
 - any reporter scored ≥70 → keep, use the highest score
 - all reporters <70 → auto-dismiss into the Low Confidence list
-- weight **≥1.90** bypasses this filter — agreement between two near-full-weight
-  reviewers is itself the evidence. One trusted + Gemini (1.5) does not bypass.
+- weight **≥2.0** bypasses this filter — agreement between two full-weight
+  reviewers is itself the evidence. One full-weight + Gemini (1.5) does not bypass.
 
 Weight measures trust in the reviewer; confidence measures certainty about the
 issue. They are independent. A Gemini-only issue at confidence 95 still goes to
@@ -551,7 +555,7 @@ that fell back to its CLI says so on stderr; name it in the Step 6 header.
 #### Focus: <focus text> ← omit this sub-heading when no focus given
 
 - **[CRITICAL]** `file:line` — Title
-  Category: bug | Agreement: unanimous (3.40) | Confidence: 92
+  Category: bug | Agreement: unanimous (3.50) | Confidence: 92
   Raised by: Codex, Claude, Cursor/Grok, Gemini
   Evidence: <the actual code, verified by you>
   Resolution: <concrete fix>
@@ -570,7 +574,7 @@ set, not scattered among bugs:
 ### Unresolved (N) — your call
 
 - **Issue:** …
-  - Opening positions: Peer (1.0) … | Cursor/Grok (0.90) … | Gemini (0.5) … | You (1.0) …
+  - Opening positions: Peer (1.0) … | Cursor/Grok (1.0) … | Gemini (0.5) … | You (1.0) …
   - Challenges that landed: …
   - Rebuttal outcome: who conceded, who defended, on what new evidence
   - **Recommendation:** <your own call, stated plainly>

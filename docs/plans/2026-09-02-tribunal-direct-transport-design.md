@@ -214,3 +214,30 @@ Live calls are not part of the suite; they need credentials CI does not have.
 - Keychain or `.credentials.json` as a second credential source. One source,
   checked once, with a named failure beats a chain that can silently pick the
   revoked one.
+
+## Superseded: the Cursor weight, 2026-09-02
+
+This document argued Cursor down to 0.90 because session reuse would make it
+defend its review position instead of re-deriving it. The first end-to-end run
+measured that claim and it did not hold.
+
+Session memory is real: on the third turn of one chat, across separate
+processes, told to answer from memory with no tool use, the seat recalled how
+many findings it had raised and quoted one of its own titles verbatim. But asked
+to debate a finding *it* had raised, it re-derived the question and ruled its
+own finding INVALID — writing "Cursor over-read the `-p` resume trap onto a UUID
+mint" in the third person. The peer seat reached the same verdict independently,
+as did a direct measurement.
+
+The mechanism was real and the predicted bias was not, so the discount had
+nothing behind it. Cursor/Grok is now a full 1.0 peer and the weight table drops
+the trusted/near-peer distinction entirely: three seats at 1.0, Gemini at 0.5.
+The confidence bypass follows to 2.0, still meaning "two full-weight reviewers
+agreed".
+
+This also resolves a latent inconsistency. `Cursor/Grok + Gemini` scored 1.40
+and was labelled consensus, while Step 5's post-debate bar is 1.5. The pair is
+now 1.5 and clears the bar it was always being compared against.
+
+None of these numbers are calibrated. The path off arbitrary is a hit rate —
+findings that survive verification over findings raised — not another argument.

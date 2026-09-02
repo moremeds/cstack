@@ -298,6 +298,20 @@ class TestSkillWiring(unittest.TestCase):
             self.assertLess(step5.index(f'> "{path}"'), step5.index(f'--contested "{path}"'),
                             f"{path} is read before anything writes it")
 
+    def test_the_review_round_never_adopts_the_direct_transport(self):
+        """The one invariant the whole design exists to protect.
+
+        Asserting Step 3 still *has* the CLI is not enough: an edit that adds
+        direct_codex beside it — "use the direct transport everywhere" — passes
+        every other test while removing the repo access that grounds review.md's
+        "a wrong file path or line number discredits every other finding you
+        make". Debate and rebuttal go direct because they read no files. Review
+        does, and that is the difference the round split is made of.
+        """
+        step3 = self._step("## Step 3 — Launch the panel in parallel")
+        for fn in ("direct_codex", "direct_claude"):
+            self.assertNotIn(fn, step3)
+
     def test_preflight_runs_before_the_panel(self):
         text = SKILL.read_text()
         self.assertLess(text.index("direct_preflight"),

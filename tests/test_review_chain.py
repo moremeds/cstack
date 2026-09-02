@@ -345,12 +345,26 @@ class TestSeatAvailability(unittest.TestCase):
 
 class TestPanelWeights(unittest.TestCase):
     def test_cursor_alone_cannot_reach_consensus(self):
-        """0.95 is deliberate: near-peer, but never decisive alone."""
+        """0.90 is deliberate: near-peer, biased by session reuse, never decisive alone."""
         body = TRIBUNAL.read_text()
         row = [r for r in body.splitlines() if r.startswith("| Cursor/Grok alone")]
         self.assertTrue(row, "no weight row for a lone Cursor finding")
         self.assertIn("contested", row[0], "a lone Cursor finding skips debate")
-        self.assertIn("0.95", row[0])
+        self.assertIn("0.90", row[0])
+
+    def test_confidence_bypass_tracks_the_cursor_weight(self):
+        """The bypass threshold is derived, not chosen.
+
+        It means "a trusted reviewer plus Cursor agreed", which is only true
+        while the number equals 1.0 + Cursor's weight. Lowering the weight
+        without lowering this silently starts auto-dismissing low-confidence
+        findings that two near-full-weight reviewers both reported.
+        """
+        body = TRIBUNAL.read_text()
+        row = [r for r in body.splitlines() if r.startswith("| Cursor/Grok alone")][0]
+        cursor = float(re.search(r"0\.\d\d", row).group())
+        bypass = float(re.search(r"weight \*\*\u2265(\d\.\d\d)\*\* bypasses", body).group(1))
+        self.assertAlmostEqual(bypass, 1.0 + cursor, places=2)
 
     def test_payload_wait_and_panel_cover_the_real_review(self):
         """The panel must see every worktree state and terminate predictably."""

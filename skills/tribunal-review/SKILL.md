@@ -15,7 +15,7 @@ is real. A finding only one raises is a hypothesis that must survive debate.
 
 Determine which runtime you are, then the panel is everyone else:
 
-| You are | Your peer (1.0) | Cross-lineage (0.95) | Advisor (0.5) |
+| You are | Your peer (1.0) | Cross-lineage (0.90) | Advisor (0.5) |
 | --- | --- | --- | --- |
 | **Claude Code** | Codex — `codex exec -s read-only` | Cursor/Grok — `cursor-agent -p` | Gemini — `gemini -p` |
 | **Codex** | Claude — `claude -p` | Cursor/Grok — `cursor-agent -p` | Gemini — `gemini -p` |
@@ -403,24 +403,30 @@ ways = one issue citing both. Severity disagreement = take the highest, note it.
 
 | Agreement                 | Weight         | Route                  |
 | ------------------------- | -------------- | ---------------------- |
-| all four                     | 3.45 UNANIMOUS | consensus              |
+| all four                     | 3.40 UNANIMOUS | consensus              |
 | both trusted (you + peer)    | 2.0 STRONG     | consensus              |
-| one trusted + Cursor/Grok    | 1.95 STRONG    | consensus              |
+| one trusted + Cursor/Grok    | 1.90 STRONG    | consensus              |
 | one trusted + Gemini         | 1.5 SUFFICIENT | consensus              |
-| Cursor/Grok + Gemini         | 1.45 SUFFICIENT| consensus              |
+| Cursor/Grok + Gemini         | 1.40 SUFFICIENT| consensus              |
 | one trusted alone            | 1.0            | **contested** → debate |
-| Cursor/Grok alone            | 0.95           | **contested** → debate |
+| Cursor/Grok alone            | 0.90           | **contested** → debate |
 | Gemini alone                 | 0.5            | **contested** → debate |
 
-Cursor/Grok sits at **0.95 deliberately**, not 1.0: near-peer, but never able to
+Cursor/Grok sits at **0.90 deliberately**, not 1.0: near-peer, but never able to
 do alone what a trusted reviewer does alone. Pair it with anyone and the pair
 clears consensus; leave it alone and it argues its case like any single voice.
+
+The 0.05 below a plain near-peer discount is the seat's session reuse. Cursor is
+the one panelist whose rounds share a conversation, so by the time it rebuts it
+remembers the position it took in review — it defends its own finding rather
+than re-deriving it. That is right for a rebuttal and wrong for an independent
+vote, and the weight carries the difference.
 
 Confidence filter, applied **after** dedup and **before** debate:
 
 - any reporter scored ≥70 → keep, use the highest score
 - all reporters <70 → auto-dismiss into the Low Confidence list
-- weight **≥1.95** bypasses this filter — agreement between two near-full-weight
+- weight **≥1.90** bypasses this filter — agreement between two near-full-weight
   reviewers is itself the evidence. One trusted + Gemini (1.5) does not bypass.
 
 Weight measures trust in the reviewer; confidence measures certainty about the
@@ -489,7 +495,7 @@ call per issue.
 #### Focus: <focus text> ← omit this sub-heading when no focus given
 
 - **[CRITICAL]** `file:line` — Title
-  Category: bug | Agreement: unanimous (3.45) | Confidence: 92
+  Category: bug | Agreement: unanimous (3.40) | Confidence: 92
   Raised by: Codex, Claude, Cursor/Grok, Gemini
   Evidence: <the actual code, verified by you>
   Resolution: <concrete fix>
@@ -508,7 +514,7 @@ set, not scattered among bugs:
 ### Unresolved (N) — your call
 
 - **Issue:** …
-  - Opening positions: Peer (1.0) … | Cursor/Grok (0.95) … | Gemini (0.5) … | You (1.0) …
+  - Opening positions: Peer (1.0) … | Cursor/Grok (0.90) … | Gemini (0.5) … | You (1.0) …
   - Challenges that landed: …
   - Rebuttal outcome: who conceded, who defended, on what new evidence
   - **Recommendation:** <your own call, stated plainly>

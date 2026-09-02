@@ -576,11 +576,15 @@ class TestSkillWiring(unittest.TestCase):
         self.assertIn("direct.sh", step5)
         self.assertIn("direct_codex", step5)
 
-    def test_step5_does_not_spawn_a_cli_directly(self):
+    def test_step5_does_not_spawn_a_codex_cli(self):
         """The whole point: debate and rebuttal stop paying the CLI floor."""
         step5 = self._step("## Step 5 — Debate, then rebuttal")
         self.assertNotIn("codex exec", step5)
-        self.assertNotIn("cursor-agent -p", step5)
+
+    def test_step5_cursor_resumes_rather_than_starting_over(self):
+        """Cursor cannot go direct, so it must at least not re-read the diff."""
+        step5 = self._step("## Step 5 — Debate, then rebuttal")
+        self.assertIn("--resume \"$CURSOR_CHAT\"", step5)
 
     def test_review_round_still_gets_the_repository(self):
         """Mutation guard: this is the regression the whole design avoids."""
@@ -628,9 +632,11 @@ python3 "$TR/prompts/assemble.py" --template debate --class "$TARGET_CLASS" \
   > "$SP/prompt-debate-codex.md"
 direct_codex "$SP/prompt-debate-codex.md" "$SP/debate-codex.txt" &
 PANEL_PIDS+=("$!")
-# Cursor has no measured direct path; it stays on its CLI.
+# Cursor has no direct path. It resumes the chat Step 3 opened, so it still
+# remembers the diff it read; --workspace must repeat or the session forks.
 cursor-agent -p --trust --mode ask --model cursor-grok-4.6-high \
-    --output-format text --workspace "$REPO_OR_WORKTREE" \
+    --resume "$CURSOR_CHAT" --workspace "$REPO_OR_WORKTREE" \
+    --output-format text \
     < "$SP/prompt-debate-cursor.md" > "$SP/debate-cursor.txt" 2>&1 &
 PANEL_PIDS+=("$!")
 ```
@@ -683,6 +689,95 @@ git commit -m "feat(tribunal): route debate and rebuttal through the direct tran
 
 ---
 
+### Task 5: Keep one Cursor chat for the whole panel
+
+Cursor is the one seat with no direct transport, so it converts by reusing a
+server-side session instead. Step 3 opens the chat; Steps 5 and 6 resume it, and
+never resend the diff the seat already read.
+
+The panel weight change this implies (Cursor 0.95 → 0.90, confidence bypass
+1.95 → 1.90) is **already applied** in `SKILL.md`, `README.md`, `rules/CLAUDE.md`
+and `tests/test_review_chain.py`. Do not redo it; do not revert it.
+
+**Files:**
+- Modify: `skills/tribunal-review/SKILL.md` — Step 3 Cursor block
+- Test: `tests/test_tribunal_transport.py`
+
+**Interfaces:**
+- Produces: `$CURSOR_CHAT`, a chat UUID set in Step 3 and read in Step 5.
+
+- [ ] **Step 1: Write the failing tests**
+
+```python
+class TestCursorSession(unittest.TestCase):
+    def _step(self, header):
+        body = TRIBUNAL.read_text()
+        start = body.index(header)
+        nxt = body.find("\n## ", start + 1)
+        return body[start:nxt if nxt != -1 else len(body)]
+
+    def test_step3_opens_one_chat(self):
+        """One chat for the run; without it there is nothing to resume."""
+        step3 = self._step("## Step 3 — Launch the panel in parallel")
+        self.assertIn("create-chat", step3)
+        self.assertIn("CURSOR_CHAT=", step3)
+
+    def test_every_cursor_call_carries_resume_and_workspace(self):
+        """Dropping --workspace on a resumed turn forks the session silently.
+
+        The panelist then answers from an empty context with no error, which is
+        exactly the disqualifying failure review.md names: a confident finding
+        with a fabricated file path.
+        """
+        body = TRIBUNAL.read_text()
+        calls = [ln for ln in body.splitlines() if "cursor-agent -p" in ln]
+        self.assertTrue(calls, "no cursor-agent invocation found")
+        for ln in calls:
+            block = body[body.index(ln):body.index(ln) + 400]
+            self.assertIn("--resume", block, f"no --resume near: {ln}")
+            self.assertIn("--workspace", block, f"no --workspace near: {ln}")
+```
+
+- [ ] **Step 2: Run them to verify they fail**
+
+Run: `python3 -m unittest discover -s tests -q -k TestCursorSession`
+Expected: FAIL — `create-chat` is not in Step 3 yet.
+
+- [ ] **Step 3: Open the chat in `SKILL.md` Step 3**
+
+Replace the Cursor block:
+
+```bash
+# --- Cursor / Grok 4.6 ---------------------------------------------------
+# One chat for the whole panel. Later rounds resume it instead of resending
+# the diff. --workspace must repeat on every turn: dropping it forks the
+# session silently and the seat answers from an empty context.
+CURSOR_CHAT=$(cursor-agent create-chat 2>/dev/null | tr -d '[:space:]')
+cursor-agent -p --trust --mode ask --model cursor-grok-4.6-high \
+    --resume "$CURSOR_CHAT" --workspace "$REPO_OR_WORKTREE" \
+    --output-format text \
+    < "$SP/prompt-cursor.md" > "$SP/cursor.txt" 2>"$SP/cursor.log" &
+CURSOR_PID=$!
+PANEL_PIDS+=("$CURSOR_PID")
+```
+
+If `create-chat` returns empty, `$CURSOR_CHAT` is empty and `--resume ""` fails
+fast with `chat ID must be a UUID`. That is the correct behaviour: a Cursor seat
+that cannot hold a session is reported missing in the Step 6 header, not run
+blind.
+
+- [ ] **Step 4: Run the tests to verify they pass**
+
+Run: `python3 -m unittest discover -s tests -q`
+Expected: PASS, all tests.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add skills/tribunal-review/SKILL.md tests/test_tribunal_transport.py
+git commit -m "feat(tribunal): keep one Cursor chat across all three rounds"
+```
+
 ## Verification
 
 Contract tests cover shape, not liveness. Before reporting done, run one real
@@ -700,7 +795,22 @@ Expected: `preflight-ok`, then `READY` from each, with no fallback line on
 stderr. A fallback line means the direct path failed and the CLI covered it —
 report that as a failure of this plan, not a pass.
 
+Then prove the Cursor chat actually carries context between rounds:
+
+```bash
+CID=$(cursor-agent create-chat | tr -d '[:space:]')
+cursor-agent -p --trust --mode ask --model cursor-grok-4.6-high \
+  --resume "$CID" --workspace "$PWD" --output-format text \
+  <<< 'Read README.md and reply with ONLY its first heading text.'
+cursor-agent -p --trust --mode ask --model cursor-grok-4.6-high \
+  --resume "$CID" --workspace "$PWD" --output-format text \
+  <<< 'From memory, without reading anything: which file did you just read?'
+```
+
+Expected: the second call names `README.md`. If it says it has read nothing,
+the session forked — check that `--workspace` is on both calls.
+
 ## Out of scope
 
-Converting the review round; Cursor and Gemini seats; token refresh. All three
-are argued in the design doc.
+Converting the review round; a direct transport for Cursor; the Gemini seat;
+token refresh. All are argued in the design doc.

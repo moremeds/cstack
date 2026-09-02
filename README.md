@@ -69,7 +69,7 @@ consensus.
 | --- | --- |
 | orchestrator | **1.0** |
 | peer runtime | **1.0** |
-| Cursor / Grok | 0.95 |
+| Cursor / Grok | 0.90 |
 | Gemini | 0.5 |
 
 Two reviewers agreeing clears consensus; one alone goes to debate and rebuttal.

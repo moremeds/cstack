@@ -16,6 +16,8 @@ Per-call floor, measured on this machine:
 | codex direct (curl) | ~3.0s | 20 tokens |
 | `claude -p` (spawn) | 8.0s | large, unmeasured |
 | claude direct (curl) | 1.4s | 26 tokens |
+| `cursor-agent -p` (cold spawn) | 16.5s | unmeasured |
+| `cursor-agent -p --resume` (warm session) | 14.8s | prior rounds not resent |
 
 The CLI floor is its own system prompt, tool schemas, and `AGENTS.md`
 injection. The tribunal never uses any of it: a panelist writes one report and
@@ -49,8 +51,50 @@ Split by round, not by seat.
 | Step 5 rebuttal | no | direct |
 
 Two of three calls per seat convert. Codex floor per run drops from ~54,700 to
-~18,200 tokens; panel latency from ~29s to ~13s. The review round is untouched,
-so review quality cannot regress.
+~18,200 tokens. The review round is untouched, so review quality cannot regress.
+
+**This buys tokens, not wall-clock.** An earlier draft of this document claimed
+the panel drops from ~29s to ~13s. That number described the Codex seat alone,
+making three calls in series. The rounds do not run that way: seats run in
+parallel, so a round costs what its *slowest* seat costs. That seat is Cursor,
+at ~15s, and Cursor cannot go direct (below). Converting Codex takes it out of
+the critical path it was never on.
+
+## Cursor: reuse the session, since the transport cannot change
+
+Cursor has no direct path. `--api-key` / `CURSOR_API_KEY` is gated on an
+Enterprise plan with a service-account key, and `api2.cursor.sh` is Cursor's own
+agent protocol rather than a REST endpoint. This is not for want of trying by
+others: `pi-cursor-provider`, written specifically to bridge the Pi harness to
+Cursor, states that "Each Pi turn spawns a Cursor Agent CLI subprocess" — the
+same cost this design is trying to avoid everywhere else.
+
+What Cursor does offer is a server-side session. `cursor-agent create-chat`
+returns a chat UUID in ~3s; every later call passes `--resume <uuid>` and lands
+in the same conversation. Measured: a codeword given in one process was recalled
+in the next, and a file read during a review turn was recalled — filename and
+line number — in a later turn without re-reading it.
+
+So the Cursor seat converts by a different mechanism than the other two. Codex
+and Claude go stateless and explicit: we own the context and send exactly what
+each round needs. Cursor goes stateful: the panel opens one chat at Step 3 and
+keeps it through Step 5, so debate and rebuttal never resend the diff the seat
+already read.
+
+**`--workspace` must be passed on every turn of the chat, or the session forks
+silently.** Measured: a turn with `--workspace` followed by a resumed turn
+without it produced a panelist with no memory of the first turn — no error, no
+warning, just a confident answer from an empty context. Passing `--workspace` on
+both turns kept the chain intact. This failure mode lands precisely on the thing
+`prompts/review.md` calls disqualifying, "a wrong file path or line number
+discredits every other finding you make", so it is a contract test, not a note.
+
+Session reuse costs something. By the rebuttal round the seat remembers the
+position it took in review and defends it rather than re-deriving it. That is
+correct for a rebuttal and wrong for an independent vote, so Cursor's panel
+weight drops from 0.95 to 0.90, and the confidence-filter bypass drops from
+1.95 to 1.90 with it — the threshold means "a trusted reviewer plus Cursor
+agreed" and is only that while it equals 1.0 plus Cursor's weight.
 
 ## Why this also fixes an under-specification
 
@@ -113,8 +157,11 @@ arithmetic without telling anyone.
   failure. One file, two functions, no abstraction over "provider".
 - `skills/tribunal-review/SKILL.md` — Step 5 gains the dispatch block that
   calls them; Step 3 is untouched.
+- `skills/tribunal-review/SKILL.md` — Step 3 opens the Cursor chat with
+  `create-chat` and passes `--resume`/`--workspace`; Step 5 does the same.
 - `skills/tribunal-review/references/panel-cli-notes.md` — records the Node/TLS
-  403 finding and the stale-credentials-file trap, so neither is rediscovered.
+  403 finding, the stale-credentials-file trap, and the `--workspace` session
+  fork, so none is rediscovered.
 
 ## Testing
 
@@ -127,6 +174,10 @@ following `tests/test_review_chain.py`:
 - SKILL.md's Step 5 references the dispatch block rather than the Step 3 CLI
 - the review round still names `-C "$REPO_OR_WORKTREE"` — a mutation test
   against the regression this design exists to avoid
+- every `cursor-agent` invocation in Steps 3 and 5 carries both `--resume` and
+  `--workspace` — the guard against the silent session fork
+- the confidence-filter bypass equals 1.0 plus Cursor's tabled weight, so a
+  future weight change cannot leave the threshold behind
 
 Live calls are not part of the suite; they need credentials CI does not have.
 
@@ -135,8 +186,12 @@ Live calls are not part of the suite; they need credentials CI does not have.
 - Converting the review round (packing file contents into the prompt, or
   building read-only tools over the Responses API). Revisit only if the
   remaining single CLI call per seat proves too slow in practice.
-- Cursor/Grok and Gemini. No direct path is measured for either, and Gemini is
+- A direct transport for Cursor/Grok. None exists below an Enterprise plan; the
+  seat converts by session reuse instead. Gemini stays out entirely — it is
   unlicensed on this machine.
+- Keeping a `cursor-agent` process warm between rounds. Resuming already drops
+  the seat's local CPU from ~7s to ~0.9s without it, and that CPU overlaps the
+  network wait, so removing it buys no wall-clock.
 - Retry or refresh of an expired token. Falling back to the CLI already covers
   it, and the CLI refreshes its own credentials.
 - Keychain or `.credentials.json` as a second credential source. One source,

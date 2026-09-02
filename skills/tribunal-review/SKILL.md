@@ -546,8 +546,31 @@ cursor-agent -p --trust --mode ask --model cursor-grok-4.6-high \
 PANEL_PIDS+=("$!")
 ```
 
-Rebuttal repeats the same shape with `--template rebuttal --challenges`. A seat
-that fell back to its CLI says so on stderr; name it in the Step 6 header.
+Wait for the debate seats before reading their output — they were backgrounded,
+so the files are empty until they finish. Then collect the challenges each seat
+raised and write them out, exactly as with `contested.md`: the rebuttal prompt
+is built from a file, and a missing one is a crash rather than an empty round.
+
+```bash
+for P in "${PANEL_PIDS[@]}"; do wait "$P"; done
+cat > "$SP/challenges.md" <<'EOF'
+ISSUE-N — <challenger>: <the attack raised in debate, verbatim enough to answer>
+EOF
+
+python3 "$TR/prompts/assemble.py" --template rebuttal --class "$TARGET_CLASS" \
+  --focus "$FOCUS" --challenges "$SP/challenges.md" --code-context "$SP/target.diff" \
+  > "$SP/prompt-rebuttal.md"
+direct_codex "$SP/prompt-rebuttal.md" "$SP/rebuttal-peer.txt" &   # your peer only
+PANEL_PIDS+=("$!")
+cursor-agent -p --trust --mode ask --model cursor-grok-4.6-high \
+    --resume "$CURSOR_CHAT" --workspace "$REPO_OR_WORKTREE" \
+    --output-format text \
+    < "$SP/prompt-rebuttal.md" > "$SP/rebuttal-cursor.txt" 2>&1 &
+PANEL_PIDS+=("$!")
+for P in "${PANEL_PIDS[@]}"; do wait "$P"; done
+```
+
+A seat that fell back to its CLI says so on stderr; name it in the Step 6 header.
 
 ## Step 6 — Output
 

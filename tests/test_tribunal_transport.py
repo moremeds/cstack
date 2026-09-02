@@ -400,9 +400,11 @@ class TestSkillWiring(unittest.TestCase):
         step5 = self._step("## Step 5 — Debate, then rebuttal")
         # Invocations only: the comment above the call names both functions on
         # purpose, because the orchestrator has to know which one is theirs.
-        seats = [ln.strip() for ln in step5.splitlines()
-                 if ln.lstrip().startswith(("direct_codex ", "direct_claude "))]
-        self.assertEqual(len(seats), 1, f"expected one peer seat, got {seats}")
+        # Per round there is one peer call, and across rounds it must stay the
+        # same function: mixing them seats two lineages on one panel.
+        fns = {ln.split()[0] for ln in step5.splitlines()
+               if ln.lstrip().startswith(("direct_codex ", "direct_claude "))}
+        self.assertEqual(len(fns), 1, f"expected one peer lineage, got {sorted(fns)}")
 
     def test_step5_does_not_spawn_a_codex_cli(self):
         """The whole point: debate and rebuttal stop paying the CLI floor."""
@@ -428,9 +430,24 @@ class TestSkillWiring(unittest.TestCase):
         path here does not degrade the debate round — it aborts it.
         """
         step5 = self._step("## Step 5 — Debate, then rebuttal")
-        for path in ("$SP/contested.md",):
-            self.assertLess(step5.index(f'> "{path}"'), step5.index(f'--contested "{path}"'),
+        for path, flag in (("$SP/contested.md", "--contested"),
+                           ("$SP/challenges.md", "--challenges")):
+            self.assertLess(step5.index(f'> "{path}"'), step5.index(f'{flag} "{path}"'),
                             f"{path} is read before anything writes it")
+
+    def test_step5_waits_before_reading_backgrounded_output(self):
+        """Both rounds background their seats; unwaited files are empty.
+
+        Reading debate output to build the rebuttal without waiting produces an
+        empty challenges list, and the rebuttal round then asks every seat to
+        answer nothing — which looks exactly like a round where no one had
+        anything to say.
+        """
+        step5 = self._step("## Step 5 — Debate, then rebuttal")
+        self.assertGreaterEqual(step5.count('wait "$P"'), 2,
+                                "each round must wait for its seats")
+        self.assertLess(step5.index('wait "$P"'), step5.index("challenges.md"),
+                        "challenges are collected before the debate seats finish")
 
     def test_the_review_round_never_adopts_the_direct_transport(self):
         """The one invariant the whole design exists to protect.
@@ -495,8 +512,10 @@ class TestCursorSession(unittest.TestCase):
             if ln.lstrip().startswith("cursor-agent -p"):
                 offsets.append((pos, ln.strip()))
             pos += len(ln)
-        self.assertEqual(len(offsets), 2,
-                         f"expected review + debate invocations, got {len(offsets)}")
+        # review, debate, rebuttal — every one of them, because the fork needs
+        # only a single turn to miss the flag.
+        self.assertGreaterEqual(len(offsets), 3,
+                                f"expected a cursor turn per round, got {len(offsets)}")
         for start, ln in offsets:
             block = body[start:start + 400]
             self.assertIn("--resume", block, f"no --resume near: {ln}")

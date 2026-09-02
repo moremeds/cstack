@@ -73,26 +73,38 @@ Bearer token from `$HOME/.codex/auth.json` at `.tokens.access_token`;
 `response.output_text.delta` events.
 
 **Claude** — `POST https://api.anthropic.com/v1/messages` with
-`anthropic-beta: oauth-2025-04-20`. The token comes from the **macOS Keychain**:
+`anthropic-beta: oauth-2025-04-20`. The token is `$CLAUDE_CODE_OAUTH_TOKEN`, a
+long-lived `sk-ant-oat0` credential, and that environment variable is the only
+source. The OAuth path also requires the system prompt to open with the Claude
+Code identity line — that line is the 26-token floor, and it is not optional.
 
-```bash
-security find-generic-password -s "Claude Code-credentials" -w
-```
+Two credential sources are deliberately **not** read. `$HOME/.claude/.credentials.json`
+still exists on this machine holding a token the server reports as revoked, so
+reading it yields a silent 401. The macOS Keychain entry
+(`security find-generic-password -s "Claude Code-credentials"`) is live but
+expires within hours, which buys nothing the env var does not already give.
 
-Not from `$HOME/.claude/.credentials.json`. That file still exists on this
-machine holding a token the server reports as revoked; reading it yields a
-silent 401. The Keychain entry is the live one. The OAuth path also requires
-the system prompt to open with the Claude Code identity line — that line is the
-26-token floor, and it is not optional.
+The variable is exported from `~/.zshrc`, which **only interactive shells
+read**: `zsh -ic` sees it, `zsh -lc` does not, and neither does a
+non-interactive tool shell. A panelist launched in the background is exactly
+that kind of shell. Moving the export to `~/.zshenv` is what makes env-only
+correct; that is a change to the operator's dotfiles, outside this repo. Until
+then the variable's presence is an environment precondition, not an assumption
+the code may make.
 
-## Credentials expire, so the CLI stays the fallback
+## Fail at the door, fall back inside it
 
-The Claude OAuth token's lifetime is measured in hours. A direct call that
-fails must not silently cost the panel a seat: on any non-2xx, fall back to
-that seat's CLI invocation for that call and note the fallback in the run
-header. This is the one piece of error handling the design will not trade away
-— a debate round quietly missing a panelist changes the consensus arithmetic
-without telling anyone.
+Two different failures, two different answers.
+
+**Missing credential** is a precondition, so it is checked once before the
+panel launches, and it aborts with the reason named. A run that discovers this
+per-call, mid-debate, reports a degraded consensus as if it were a real one.
+
+**A non-2xx on a call that did go out** (rate limit, 5xx, a revoked token) falls
+back to that seat's CLI invocation for that call and notes the fallback in the
+run header. This is the one piece of error handling the design will not trade
+away — a debate round quietly missing a panelist changes the consensus
+arithmetic without telling anyone.
 
 ## Components
 
@@ -110,6 +122,7 @@ Contract tests in `tests/test_tribunal_transport.py`, stdlib `unittest`,
 following `tests/test_review_chain.py`:
 
 - `direct.sh` never hardcodes a token, an account id, or a home path
+- a missing `$CLAUDE_CODE_OAUTH_TOKEN` aborts before launch, naming the variable
 - both functions fall back to the CLI on a non-2xx (simulated with a stub)
 - SKILL.md's Step 5 references the dispatch block rather than the Step 3 CLI
 - the review round still names `-C "$REPO_OR_WORKTREE"` — a mutation test
@@ -126,3 +139,6 @@ Live calls are not part of the suite; they need credentials CI does not have.
   unlicensed on this machine.
 - Retry or refresh of an expired token. Falling back to the CLI already covers
   it, and the CLI refreshes its own credentials.
+- Keychain or `.credentials.json` as a second credential source. One source,
+  checked once, with a named failure beats a chain that can silently pick the
+  revoked one.

@@ -92,3 +92,45 @@ PY
       < "$prompt" >>"$out.log" 2>&1 || return 1
   fi
 }
+
+direct_claude() {   # direct_claude <prompt-file> <out-file>
+  local prompt="$1" out="$2" body code
+
+  body=$(python3 - "$prompt" <<'PY'
+import json, sys
+print(json.dumps({
+    "model": "claude-opus-5",
+    "max_tokens": 8192,
+    # The OAuth path rejects a system prompt that does not open with this line.
+    # It is the 26-token floor, and the reason direct is 700x cheaper than spawn.
+    "system": [{"type": "text",
+                "text": "You are Claude Code, Anthropic's official CLI for Claude."}],
+    "messages": [{"role": "user", "content": open(sys.argv[1]).read()}],
+}))
+PY
+)
+  code=$(curl -sS -o "$out.json" -w '%{http_code}' \
+    https://api.anthropic.com/v1/messages \
+    -H "authorization: Bearer $CLAUDE_CODE_OAUTH_TOKEN" \
+    -H "anthropic-beta: oauth-2025-04-20" \
+    -H "anthropic-version: 2023-06-01" \
+    -H "content-type: application/json" \
+    -d "$body" 2>>"$out.log") || code=000
+
+  if [ "$code" = "200" ]; then
+    python3 - "$out.json" > "$out" <<'PY'
+import json, sys
+doc = json.load(open(sys.argv[1]))
+sys.stdout.write("".join(b.get("text", "") for b in doc.get("content", [])))
+PY
+  fi
+
+  if [ ! -s "$out" ]; then
+    echo "tribunal: claude direct failed (http=$code), falling back to the CLI" >&2
+    env -u ANTHROPIC_API_KEY -u ANTHROPIC_AUTH_TOKEN \
+      claude -p --restricted --strict-mcp-config \
+        --disallowedTools "Write,Edit,NotebookEdit" \
+        --allowedTools Read,Grep,Glob \
+        < "$prompt" > "$out" 2>>"$out.log" || return 1
+  fi
+}

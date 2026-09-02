@@ -108,5 +108,41 @@ printf 200
         self.assertIn("429", r.stderr)
 
 
+class TestClaudeSeat(StubbedPath):
+    def test_text_blocks_are_joined_into_the_output_file(self):
+        self._stub("curl", """
+for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done
+cat > "$out" <<'JSON'
+{"content":[{"type":"text","text":"ISSUE-1 "},{"type":"text","text":"real bug"}]}
+JSON
+printf 200
+""")
+        out = pathlib.Path(self.tmp) / "claude.txt"
+        r = run_fn("direct_claude", self._prompt("debate this"), str(out),
+                   env={"CLAUDE_CODE_OAUTH_TOKEN": "stub"}, path_prefix=str(self.bin))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(out.read_text(), "ISSUE-1 real bug")
+
+    def test_non_200_falls_back_to_the_cli(self):
+        self._stub("curl", 'for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done\n: > "$out"\nprintf 401\n')
+        self._stub("claude", 'cat > /dev/null; echo "from the cli"\n')
+        out = pathlib.Path(self.tmp) / "claude.txt"
+        r = run_fn("direct_claude", self._prompt("debate this"), str(out),
+                   env={"CLAUDE_CODE_OAUTH_TOKEN": "stub"}, path_prefix=str(self.bin))
+        self.assertEqual(out.read_text().strip(), "from the cli")
+        self.assertIn("401", r.stderr)
+
+    def test_the_identity_line_is_present(self):
+        """The OAuth path rejects a system prompt that omits it."""
+        src = DIRECT.read_text()
+        self.assertIn("You are Claude Code, Anthropic's official CLI for Claude.", src)
+
+    def test_no_second_credential_source(self):
+        """A chain can silently pick the revoked .credentials.json. One source only."""
+        src = DIRECT.read_text()
+        self.assertNotIn(".credentials.json", src)
+        self.assertNotIn("find-generic-password", src)
+
+
 if __name__ == "__main__":
     unittest.main()

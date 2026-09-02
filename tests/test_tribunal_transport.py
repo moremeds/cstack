@@ -144,5 +144,78 @@ printf 200
         self.assertNotIn("find-generic-password", src)
 
 
+ASSEMBLE = ROOT / "skills" / "tribunal-review" / "prompts" / "assemble.py"
+
+
+class TestAssemblerTemplates(unittest.TestCase):
+    def _write(self, name, text):
+        p = pathlib.Path(tempfile.mkdtemp(prefix="tribunal-")) / name
+        p.write_text(text)
+        return str(p)
+
+    def _run(self, *args):
+        return subprocess.run(["python3", str(ASSEMBLE), *args],
+                              capture_output=True, text=True)
+
+    def test_debate_template_substitutes_its_own_placeholders(self):
+        r = self._run("--template", "debate", "--class", "code",
+                      "--contested", self._write("c.md", "ISSUE-3 disputed"),
+                      "--code-context", self._write("d.diff", "--- a/x.py"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("ISSUE-3 disputed", r.stdout)
+        self.assertIn("--- a/x.py", r.stdout)
+        self.assertNotIn("{contested_items}", r.stdout)
+        self.assertNotIn("{code_context}", r.stdout)
+
+    def test_rebuttal_template_substitutes_challenges(self):
+        r = self._run("--template", "rebuttal", "--class", "code",
+                      "--challenges", self._write("h.md", "you ignored the null case"),
+                      "--code-context", self._write("d.diff", "--- a/x.py"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("you ignored the null case", r.stdout)
+        self.assertNotIn("{challenges}", r.stdout)
+
+    def test_review_template_is_still_the_default(self):
+        """Task 1-3 must not change what Step 3 already sends."""
+        r = self._run("--class", "code", "--reviewer", "Codex",
+                      "--specialty", "BUG DETECTION",
+                      "--content", self._write("t.diff", "--- a/x.py"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("HOW TO REVIEW (code targets", r.stdout)
+
+    def test_a_template_without_a_focus_block_does_not_crash(self):
+        """drop_block() indexes blindly; rebuttal.md has no FOCUS block."""
+        r = self._run("--template", "rebuttal", "--class", "code",
+                      "--challenges", self._write("h.md", "x"),
+                      "--code-context", self._write("d.diff", "y"),
+                      "--focus", "")
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_review_without_content_is_an_error_not_an_empty_prompt(self):
+        """--content was required=True before this change.
+
+        Making it optional for debate/rebuttal must not let a review assemble
+        with an empty target: the panel would return findings about nothing and
+        the orchestrator could not tell that from a clean diff.
+        """
+        r = self._run("--class", "code", "--reviewer", "Codex",
+                      "--specialty", "BUG DETECTION")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("--content", r.stderr)
+
+    def test_an_unsupplied_placeholder_does_not_leak_braces(self):
+        """debate.md has no {challenges}; rebuttal.md has no {contested_items}.
+
+        One substitution map serves all three templates, so every key is applied
+        to every template. A key whose file was not given must vanish, not stay
+        behind as a literal brace for the panelist to read as an instruction.
+        """
+        r = self._run("--template", "debate", "--class", "code",
+                      "--contested", self._write("c.md", "ISSUE-3"),
+                      "--code-context", self._write("d.diff", "z"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotRegex(r.stdout, r"\{[a-z_]+\}")
+
+
 if __name__ == "__main__":
     unittest.main()

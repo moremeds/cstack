@@ -274,8 +274,13 @@ GEMINI_PID=$!
 PANEL_PIDS+=("$GEMINI_PID")
 
 # --- Cursor / Grok 4.6 ---------------------------------------------------
+# One chat for the whole panel. Later rounds resume it instead of resending
+# the diff. --workspace must repeat on every turn: dropping it forks the
+# session silently and the seat answers from an empty context.
+CURSOR_CHAT=$(cursor-agent create-chat 2>/dev/null | tr -d '[:space:]')
 cursor-agent -p --trust --mode ask --model cursor-grok-4.6-high \
-    --output-format text --workspace "$REPO_OR_WORKTREE" \
+    --resume "$CURSOR_CHAT" --workspace "$REPO_OR_WORKTREE" \
+    --output-format text \
     < "$SP/prompt-cursor.md" > "$SP/cursor.txt" 2>"$SP/cursor.log" &
 CURSOR_PID=$!
 PANEL_PIDS+=("$CURSOR_PID")

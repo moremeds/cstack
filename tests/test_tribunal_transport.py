@@ -252,5 +252,41 @@ class TestSkillWiring(unittest.TestCase):
                         text.index("## Step 5 — Debate, then rebuttal"))
 
 
+class TestCursorSession(unittest.TestCase):
+    def test_step3_opens_one_chat(self):
+        """One chat for the run; without it there is nothing to resume."""
+        body = SKILL.read_text()
+        start = body.index("## Step 3 — Launch the panel in parallel")
+        step3 = body[start:body.index("\n## ", start + 1)]
+        self.assertIn("create-chat", step3)
+        self.assertIn("CURSOR_CHAT=", step3)
+
+    def test_every_cursor_call_carries_resume_and_workspace(self):
+        """Dropping --workspace on a resumed turn forks the session silently.
+
+        The panelist then answers from an empty context with no error, which is
+        exactly the disqualifying failure review.md names: a confident finding
+        with a fabricated file path. Measured 2026-09-02 — a chat given
+        --workspace on turn 1 and not on turn 2 reported having read nothing.
+        Every call is checked because the trap needs only one call to miss it.
+        """
+        body = SKILL.read_text()
+        # Scan by offset, not by str.index(line): the two invocations are
+        # byte-identical, so index() would resolve both to the first and leave
+        # the second — the one this trap actually bites — unchecked. And the
+        # seat table names `cursor-agent -p` in a cell without invoking it.
+        offsets, pos = [], 0
+        for ln in body.splitlines(True):
+            if ln.lstrip().startswith("cursor-agent -p"):
+                offsets.append((pos, ln.strip()))
+            pos += len(ln)
+        self.assertEqual(len(offsets), 2,
+                         f"expected review + debate invocations, got {len(offsets)}")
+        for start, ln in offsets:
+            block = body[start:start + 400]
+            self.assertIn("--resume", block, f"no --resume near: {ln}")
+            self.assertIn("--workspace", block, f"no --workspace near: {ln}")
+
+
 if __name__ == "__main__":
     unittest.main()

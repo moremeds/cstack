@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# Direct API transport for the tribunal rounds that need no repo access.
+#
+# Debate and rebuttal reason over findings already collected in Step 4, so they
+# do not need a coding agent — only a completion. Spawning one costs ~18k tokens
+# of CLI system prompt per call. The review round is NOT routed through here:
+# it reads the repository, and that is what keeps its findings honest.
+#
+# curl, not node: node:https and undici share a TLS stack whose fingerprint
+# Cloudflare rejects at chatgpt.com/backend-api with a 403. See
+# references/panel-cli-notes.md.
+
+direct_preflight() {
+  if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+    echo "tribunal: CLAUDE_CODE_OAUTH_TOKEN is unset. Export it from ~/.zshenv" >&2
+    echo "          (~/.zshrc is read by interactive shells only; a panelist is not one)" >&2
+    return 1
+  fi
+  if [ ! -r "$HOME/.codex/auth.json" ]; then
+    echo "tribunal: \$HOME/.codex/auth.json is unreadable; run 'codex login'" >&2
+    return 1
+  fi
+}
+
+_codex_token() {
+  python3 -c "import json,os;print(json.load(open(os.path.expanduser('~/.codex/auth.json')))['tokens']['access_token'])"
+}
+
+_codex_account() {   # _codex_account <jwt>
+  python3 - "$1" <<'PY'
+import base64, json, sys
+payload = sys.argv[1].split(".")[1]
+payload += "=" * (-len(payload) % 4)
+claims = json.loads(base64.urlsafe_b64decode(payload))
+print(claims["https://api.openai.com/auth"]["chatgpt_account_id"])
+PY
+}
+
+direct_codex() {   # direct_codex <prompt-file> <out-file>
+  local prompt="$1" out="$2" tok acct body code
+  tok=$(_codex_token) || return 1
+  acct=$(_codex_account "$tok") || return 1
+
+  body=$(python3 - "$prompt" <<'PY'
+import json, sys
+print(json.dumps({
+    "model": "gpt-5.6-sol",
+    "store": False,
+    "stream": True,
+    "instructions": "Follow the instructions in the message exactly. Output only the report.",
+    "input": [{"type": "message", "role": "user",
+               "content": [{"type": "input_text", "text": open(sys.argv[1]).read()}]}],
+    "reasoning": {"effort": "high"},
+    "tool_choice": "auto",
+    "parallel_tool_calls": True,
+}))
+PY
+)
+  # --http1.1: h2 measured ~1.2s slower to first byte against this endpoint.
+  code=$(curl -sS --http1.1 -o "$out.sse" -w '%{http_code}' \
+    https://chatgpt.com/backend-api/codex/responses \
+    -H "authorization: Bearer $tok" \
+    -H "chatgpt-account-id: $acct" \
+    -H "originator: codex_cli_rs" \
+    -H "OpenAI-Beta: responses=experimental" \
+    -H "accept: text/event-stream" \
+    -H "content-type: application/json" \
+    -H "session-id: $(uuidgen)" \
+    -H "user-agent: codex_cli_rs/0.144.4 (Mac OS 25.5.0; arm64)" \
+    -d "$body" 2>>"$out.log") || code=000
+
+  if [ "$code" = "200" ]; then
+    python3 - "$out.sse" > "$out" <<'PY'
+import json, sys
+parts = []
+for line in open(sys.argv[1]):
+    if not line.startswith("data: "):
+        continue
+    try:
+        ev = json.loads(line[6:])
+    except ValueError:
+        continue
+    if ev.get("type") == "response.output_text.delta":
+        parts.append(ev.get("delta", ""))
+sys.stdout.write("".join(parts))
+PY
+  fi
+
+  if [ ! -s "$out" ]; then
+    echo "tribunal: codex direct failed (http=$code), falling back to the CLI" >&2
+    codex exec -s read-only --skip-git-repo-check -o "$out" - \
+      < "$prompt" >>"$out.log" 2>&1 || return 1
+  fi
+}

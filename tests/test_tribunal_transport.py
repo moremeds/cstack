@@ -55,6 +55,40 @@ class StubbedPath(unittest.TestCase):
         return str(p)
 
 
+class TestCredentialsStayOffTheCommandLine(unittest.TestCase):
+    """argv is world-readable on this machine.
+
+    `ps` shows every argument of every process, so a bearer token passed as
+    -H "authorization: Bearer $tok" and a prompt passed as -d "$body" are
+    visible to any other local process for as long as curl runs. The body is
+    the whole diff under review.
+    """
+
+    def test_no_header_or_body_is_passed_as_an_argument(self):
+        src = DIRECT.read_text()
+        for bad in ('-H "authorization:', "-H 'authorization:", '-d "$body"'):
+            self.assertNotIn(bad, src, f"credential or payload in argv: {bad}")
+
+    def test_headers_and_body_come_from_files(self):
+        src = DIRECT.read_text()
+        self.assertIn("--config", src, "headers must come from a curl config file")
+        self.assertIn("--data-binary @", src, "body must be read from a file")
+
+
+class TestCurlIsBounded(unittest.TestCase):
+    """Without a deadline a black-holed connection never reaches the fallback.
+
+    The fallback is guarded on curl returning; a stalled TLS handshake keeps
+    command substitution open indefinitely, so the seat neither answers nor
+    degrades — the whole panel waits on it.
+    """
+
+    def test_both_calls_set_connect_and_total_timeouts(self):
+        src = DIRECT.read_text()
+        self.assertEqual(src.count("--connect-timeout"), 2)
+        self.assertEqual(src.count("--max-time"), 2)
+
+
 class TestNoSecretsInSource(unittest.TestCase):
     """A public repo cannot carry a credential or a personal path."""
 

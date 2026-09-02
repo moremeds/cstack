@@ -60,18 +60,29 @@ print(json.dumps({
 }))
 PY
 )
+  # Headers and body go through files, never argv: ps exposes every argument
+  # to any local process, and these carry the bearer token and the full diff.
+  ( umask 077
+    cat > "$out.cfg" <<CFG
+header = "authorization: Bearer $tok"
+header = "chatgpt-account-id: $acct"
+header = "originator: codex_cli_rs"
+header = "OpenAI-Beta: responses=experimental"
+header = "accept: text/event-stream"
+header = "content-type: application/json"
+header = "session-id: $(uuidgen)"
+header = "user-agent: codex_cli_rs/0.144.4 (Mac OS 25.5.0; arm64)"
+CFG
+    printf '%s' "$body" > "$out.req" )
+
   # --http1.1: h2 measured ~1.2s slower to first byte against this endpoint.
-  code=$(curl -sS --http1.1 -o "$out.sse" -w '%{http_code}' \
-    https://chatgpt.com/backend-api/codex/responses \
-    -H "authorization: Bearer $tok" \
-    -H "chatgpt-account-id: $acct" \
-    -H "originator: codex_cli_rs" \
-    -H "OpenAI-Beta: responses=experimental" \
-    -H "accept: text/event-stream" \
-    -H "content-type: application/json" \
-    -H "session-id: $(uuidgen)" \
-    -H "user-agent: codex_cli_rs/0.144.4 (Mac OS 25.5.0; arm64)" \
-    -d "$body" 2>>"$out.log") || code=000
+  # Timeouts: without them a black-holed connection holds command substitution
+  # open forever and the fallback below is never reached.
+  code=$(curl -sS --http1.1 --connect-timeout 15 --max-time 600 \
+    --config "$out.cfg" --data-binary @"$out.req" \
+    -o "$out.sse" -w '%{http_code}' \
+    https://chatgpt.com/backend-api/codex/responses 2>>"$out.log") || code=000
+  rm -f "$out.cfg" "$out.req"
 
   if [ "$code" = "200" ]; then
     # A truncated report is non-empty, so [ ! -s ] cannot detect it. Only
@@ -123,13 +134,20 @@ print(json.dumps({
 }))
 PY
 )
-  code=$(curl -sS -o "$out.json" -w '%{http_code}' \
-    https://api.anthropic.com/v1/messages \
-    -H "authorization: Bearer $CLAUDE_CODE_OAUTH_TOKEN" \
-    -H "anthropic-beta: oauth-2025-04-20" \
-    -H "anthropic-version: 2023-06-01" \
-    -H "content-type: application/json" \
-    -d "$body" 2>>"$out.log") || code=000
+  ( umask 077
+    cat > "$out.cfg" <<CFG
+header = "authorization: Bearer $CLAUDE_CODE_OAUTH_TOKEN"
+header = "anthropic-beta: oauth-2025-04-20"
+header = "anthropic-version: 2023-06-01"
+header = "content-type: application/json"
+CFG
+    printf '%s' "$body" > "$out.req" )
+
+  code=$(curl -sS --connect-timeout 15 --max-time 600 \
+    --config "$out.cfg" --data-binary @"$out.req" \
+    -o "$out.json" -w '%{http_code}' \
+    https://api.anthropic.com/v1/messages 2>>"$out.log") || code=000
+  rm -f "$out.cfg" "$out.req"
 
   if [ "$code" = "200" ]; then
     # stop_reason, not the HTTP status, is where truncation is reported.

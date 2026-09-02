@@ -53,8 +53,42 @@ approved plan ─▶ execute-plan ─▶ review-cycle ─▶ tribunal-review
 lost the thread ─▶ whatup
 ```
 
-The first three chain rightward. `whatup` calls nothing and nothing calls it —
-it is the one you run when you stop trusting the narration.
+Three of the four chain rightward. `whatup` calls nothing and nothing calls
+it — it is the one you reach for most often, when you stop trusting the
+narration, so it leads below.
+
+### `whatup` — plain-language status
+
+```
+/whatup [PR N | a path | a phrase]
+```
+
+The question you actually ask when work feels off track: what is this for, what
+is happening right now, what works, what failed and how badly, what breaks if we
+stop here, what decision is waiting on you, where the branch and PR stand.
+Answered in the language of the conversation, light on technical detail and
+heavy on functional detail.
+
+> [!IMPORTANT]
+> Grounded in `git`, `gh`, and this session's test runs, with the evidence
+> printed **beside each claim** — a drifted agent narrates drift-free progress
+> from memory, and a grounding ritual it performs privately gets silently
+> dropped. Read-only: it names the next step, it does not take it.
+
+This skill's premise is the thesis of
+["AI Agents Push Humans Out of the Loop"](https://arxiv.org/abs/2608.23642)
+(Mitchell, Ghosh & Passi, 2026): **"current approaches to the development and
+deployment of AI agent systems do not support effective human oversight –
+they contribute to its degradation."** `whatup` is that claim taken as a
+design constraint on one skill: never let the readout be a claim without its
+evidence in the same line.
+
+The paper's **audit** mechanism — checking an agent's narrative against the
+raw log to catch where the two diverge — is now a named step: before writing
+the readout, `whatup` scans this conversation's earlier claims (a "done", a
+"passing", a plan step marked complete) against what it just verified, and a
+mismatch becomes the readout's opening line instead of a quietly corrected
+fact.
 
 ### `tribunal-review` — cross-model panel
 
@@ -127,39 +161,6 @@ Worktree → straight-through implementation → milestone commits → evidence-
 verification, then a summary of what was actually verified rather than what was
 written. No mid-flight questions: the plan was approved already, and stopping to
 re-litigate it is how a straight line turns back into a negotiation.
-
-### `whatup` — plain-language status
-
-```
-/whatup [PR N | a path | a phrase]
-```
-
-The question you actually ask when work feels off track: what is this for, what
-is happening right now, what works, what failed and how badly, what breaks if we
-stop here, what decision is waiting on you, where the branch and PR stand.
-Answered in the language of the conversation, light on technical detail and
-heavy on functional detail.
-
-> [!IMPORTANT]
-> Grounded in `git`, `gh`, and this session's test runs, with the evidence
-> printed **beside each claim** — a drifted agent narrates drift-free progress
-> from memory, and a grounding ritual it performs privately gets silently
-> dropped. Read-only: it names the next step, it does not take it.
-
-This skill's premise is the thesis of
-["AI Agents Push Humans Out of the Loop"](https://arxiv.org/abs/2608.23642)
-(Mitchell, Ghosh & Passi, 2026): **"current approaches to the development and
-deployment of AI agent systems do not support effective human oversight –
-they contribute to its degradation."** `whatup` is that claim taken as a
-design constraint on one skill: never let the readout be a claim without its
-evidence in the same line.
-
-The paper's **audit** mechanism — checking an agent's narrative against the
-raw log to catch where the two diverge — is now a named step: before writing
-the readout, `whatup` scans this conversation's earlier claims (a "done", a
-"passing", a plan step marked complete) against what it just verified, and a
-mismatch becomes the readout's opening line instead of a quietly corrected
-fact.
 
 ---
 

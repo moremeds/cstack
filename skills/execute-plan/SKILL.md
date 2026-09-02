@@ -41,7 +41,7 @@ the tracker above; it is not a reason to improvise or skip the review.
 
 `/execute-plan [--full-cycle] [<plan-ref>]`
 
-- `--full-cycle` (optional) → wraps execution with a review pass (see **Which reviewer** below): reviews the plan first (hard gate — must pass before any code is touched), executes as normal, then reviews the cumulative diff and runs any plan-defined end-to-end validation with real data. See Steps 0 and 7 below.
+- `--full-cycle` (optional) → wraps execution with a review pass (see **Which reviewer** below): reviews the plan first (hard gate — must pass before any code is touched), executes as normal, then reviews the cumulative diff and runs any plan-defined end-to-end validation with real data. See Steps 0 and 7 below. The flag is also implied when the invocation asks in prose for a review afterwards ("then run /review-cycle", "之后跑一次 review") — treat that as `--full-cycle`.
 - No arg → execute the most recently and explicitly approved plan in this conversation.
 - `<plan-ref>` → a path like `docs/plans/2026-06-02-foo.md` or a task ID — read it as the plan to execute.
 
@@ -58,7 +58,7 @@ the tracker above; it is not a reason to improvise or skip the review.
 
 1. **Worktree setup + execution baseline.** If the work isn't already in a worktree, create one in `.worktrees/<branch-slug>/`. Use the existing branch if checked out, otherwise create `<scope>/<short-title>` from master. If the target branch is already checked out in the main tree (a branch can't be checked out twice), move it into `.worktrees/<branch-slug>/` or branch off it there — or state in one line that worktree creation is being skipped and why; never skip silently. Don't ask which branch — derive from the plan's title or context. If a reused branch contains unrelated commits that must not ship with this plan, create a fresh branch/worktree from the correct delivery base instead of merely excluding them from review; keep stacked commits only when the plan actually depends on them. Before the first plan-caused edit, record `EXEC_BASE=$(git rev-parse HEAD)` plus the current staged, unstaged, and untracked sets. Those are the boundary between pre-existing work and this execution; never reconstruct the boundary later from the default branch.
 
-2. **Track the milestones.** Translate the plan into one entry per milestone using **Runtime routing**. With `--full-cycle`, add entries for the pre-review gate and the post-review + e2e gate so the tracker cannot show “complete” while review is still pending. Mark an entry `in_progress` before starting it and `completed` only when its commit or gate lands.
+2. **Track the milestones.** Translate the plan into one entry per milestone using **Runtime routing**. With `--full-cycle`, add entries for the pre-review gate and the post-review + e2e gate so the tracker cannot show “complete” while review is still pending. Mark an entry `in_progress` before starting it, and `completed` only when its commit or gate lands **and** the evidence satisfies the plan's own stated acceptance condition for that milestone, on the host or environment the plan names. If the condition names one machine and the check ran on another, the entry is not complete — leave it open and record the gap.
 
 3. **Run each milestone straight through.**
    - Write the code / edit files.
@@ -85,11 +85,13 @@ the tracker above; it is not a reason to improvise or skip the review.
    | ----------------------------- | ------------------- | ------------------------- |
    | <what was supposed to happen> | <concrete artifact> | <one-line command or URL> |
 
+   All three columns are required; a claim without a re-verify command is an unverified row and must be labeled as such.
+
    Include a row for any unverified item (state explicitly that it's unverified and why).
 
    The table must reflect the run's **actual** end: if more milestones land after a table was issued, reissue the full table before ending the run. Also refresh it right before any pause or context compaction — a table that covers only the first half of the work is the most common historical failure.
 
-   If `--full-cycle` was **not** passed, end here with one line naming the natural next step (a review of this diff, plus any plan-defined e2e check) — offer it, don't perform it unprompted.
+   If `--full-cycle` was **not** passed, end here with one declarative line: `Next step (not run): <reviewer> on this diff`, plus any plan-defined e2e check. State it; never phrase it as a question and never run it.
 
 ### Which reviewer
 
@@ -103,9 +105,9 @@ surrounding apply-and-verify passes, a real review but a smaller one.
 Say which of the two ran in the summary table; never report a `--full-cycle`
 gate as satisfied by a reviewer that never ran.
 
-7. **Full-cycle post-review + e2e** (only with `--full-cycle`). Review exactly the committed cumulative delta since `EXEC_BASE`. Before each post-review, verify every plan-created file and pending fix, make the corresponding focused milestone or review-fix commit, and confirm a clean worktree; never rely on a reviewer to discover staged or untracked files implicitly. Use `review-cycle` when its current-branch target is exactly that execution delta — the normal case for the fresh worktree created in Step 1. If the worktree was reused and the default-branch diff also contains pre-existing commits, do not review the wrong range: fall back to `tribunal-review --base <EXEC_BASE>` and disclose that the post gate used the smaller reviewer because `review-cycle` cannot express the exact range. If a review applies further fixes, verify them, create a focused review-fix commit, and re-run the same reviewer before reporting done. If the plan defines an end-to-end validation (a smoke test, a real API call, a real query), run it now against real data — never synthetic values or placeholder tickers, per the no-synthetic-data rule. Add the reviewer, verdict, `EXEC_BASE`, and e2e result as rows in the summary table from Step 6. The verdict is a gate, not a note: `APPROVE`/`SHIP` completes the run; `CHANGES NEEDED`/`FIX-FIRST` means apply the findings, re-verify, commit, and re-review; a finding that invalidates the approach stops the run and goes to the user.
+7. **Full-cycle post-review + e2e** (only with `--full-cycle`). Review exactly the committed cumulative delta since `EXEC_BASE`. Before each post-review, verify every plan-created file and pending fix, make the corresponding focused milestone or review-fix commit, and confirm a clean worktree; never rely on a reviewer to discover staged or untracked files implicitly. Use `review-cycle` when the branch diff equals that execution delta — the normal case for the fresh worktree created in Step 1. Otherwise the range is wrong: fall back to `tribunal-review --base <EXEC_BASE>` and disclose the downgrade. If a review applies further fixes, verify them, create a focused review-fix commit, and re-run the same reviewer before reporting done. If the plan defines an end-to-end validation (a smoke test, a real API call, a real query), run it now against real data — never synthetic values or placeholder tickers, per the no-synthetic-data rule. Add the reviewer, verdict, `EXEC_BASE`, and e2e result as rows in the summary table from Step 6. The verdict is a gate, not a note: `APPROVE`/`SHIP` completes the run; `CHANGES NEEDED`/`FIX-FIRST` means apply the findings, re-verify, commit, and re-review; a finding that invalidates the approach stops the run and goes to the user.
 
-8. **Remote delivery.** Follow the plan plus the active repo/global Git workflow; standing instructions may require updating or opening a PR even when the plan omits that mechanical delivery step. Before any push/PR, verify the current repo is the plan's target repo (`git remote -v` / cwd) and the branch diff contains only the intended delivery — a mismatch is a hard stop. Never push directly to `master`/`main`.
+8. **Remote delivery.** Delivery is part of the run, not a follow-up question. Unless the invocation said otherwise, the run ends with the branch pushed and a PR opened — or the existing PR updated — even when the plan omits that mechanical step, and the PR URL goes into the summary table as a row. Before any push/PR, verify the current repo is the plan's target repo (`git remote -v` / cwd) and the branch diff contains only the intended delivery — a mismatch is a hard stop. Never push directly to `master`/`main`.
 
 ## Guardrails
 

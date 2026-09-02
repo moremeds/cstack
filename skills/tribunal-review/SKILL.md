@@ -275,8 +275,10 @@ PANEL_PIDS+=("$GEMINI_PID")
 
 # --- Cursor / Grok 4.6 ---------------------------------------------------
 # One chat for the whole panel. Later rounds resume it instead of resending
-# the diff. --workspace must repeat on every turn: dropping it forks the
-# session silently and the seat answers from an empty context.
+# the diff. --workspace must repeat on every turn with the same value: the
+# chat is keyed on the effective workspace, and the flag defaults to cwd, so
+# a resumed turn run from elsewhere forks the session silently and the seat
+# answers from an empty context.
 CURSOR_CHAT=$(cursor-agent create-chat 2>/dev/null | tr -d '[:space:]')
 cursor-agent -p --trust --mode ask --model cursor-grok-4.6-high \
     --resume "$CURSOR_CHAT" --workspace "$REPO_OR_WORKTREE" \
@@ -510,7 +512,9 @@ PANEL_PIDS+=("$!")
 direct_claude "$SP/prompt-debate-codex.md" "$SP/debate-claude.txt" &
 PANEL_PIDS+=("$!")
 # Cursor has no direct path. It resumes the chat Step 3 opened, so it still
-# remembers the diff it read; --workspace must repeat or the session forks.
+# remembers the diff it read. --workspace is not optional here even though it
+# defaults to cwd: the orchestrator's cwd is not $REPO_OR_WORKTREE, and a
+# mismatch forks the session with no error.
 cursor-agent -p --trust --mode ask --model cursor-grok-4.6-high \
     --resume "$CURSOR_CHAT" --workspace "$REPO_OR_WORKTREE" \
     --output-format text \

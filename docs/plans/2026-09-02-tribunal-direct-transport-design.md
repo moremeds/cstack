@@ -81,13 +81,30 @@ each round needs. Cursor goes stateful: the panel opens one chat at Step 3 and
 keeps it through Step 5, so debate and rebuttal never resend the diff the seat
 already read.
 
-**`--workspace` must be passed on every turn of the chat, or the session forks
-silently.** Measured: a turn with `--workspace` followed by a resumed turn
-without it produced a panelist with no memory of the first turn — no error, no
-warning, just a confident answer from an empty context. Passing `--workspace` on
-both turns kept the chain intact. This failure mode lands precisely on the thing
-`prompts/review.md` calls disqualifying, "a wrong file path or line number
-discredits every other finding you make", so it is a contract test, not a note.
+**A resumed turn must present the same workspace, or the session forks
+silently.** The chat is keyed on the *effective* workspace path, and
+`--workspace` defaults to the process's cwd — so the flag is not the variable,
+the resulting path is. Measured three ways on 2026-09-02, from a chat whose
+first turn read `README.md` under the worktree:
+
+| Turn 2 | cwd | Result |
+| --- | --- | --- |
+| `--workspace $WS` | inside `$WS` | remembers `README.md` |
+| no flag | inside `$WS` | remembers `README.md` — the default supplied `$WS` |
+| no flag | elsewhere | *"I haven't read any file in this conversation"* |
+
+The third row is the trap, and note what makes it dangerous: it is invisible
+from inside the workspace. The first two rows are what you get when you test
+the flag casually from the repo you are reviewing, and they both pass. The
+tribunal is the case that fails — the orchestrator runs from its own cwd and
+reviews `$REPO_OR_WORKTREE`, so the default is wrong exactly when it matters.
+
+There is no error and no warning, just a confident answer from an empty
+context. That lands precisely on the thing `prompts/review.md` calls
+disqualifying, "a wrong file path or line number discredits every other finding
+you make", so it is a contract test, not a note. Passing `--workspace`
+explicitly on every turn is the fix, because it is the only form that does not
+depend on where the orchestrator happens to stand.
 
 Session reuse costs something. By the rebuttal round the seat remembers the
 position it took in review and defends it rather than re-deriving it. That is

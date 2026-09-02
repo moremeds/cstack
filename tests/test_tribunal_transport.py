@@ -262,13 +262,15 @@ class TestCursorSession(unittest.TestCase):
         self.assertIn("CURSOR_CHAT=", step3)
 
     def test_every_cursor_call_carries_resume_and_workspace(self):
-        """Dropping --workspace on a resumed turn forks the session silently.
+        """A resumed turn with a different effective workspace forks the chat.
 
-        The panelist then answers from an empty context with no error, which is
-        exactly the disqualifying failure review.md names: a confident finding
-        with a fabricated file path. Measured 2026-09-02 — a chat given
-        --workspace on turn 1 and not on turn 2 reported having read nothing.
-        Every call is checked because the trap needs only one call to miss it.
+        --workspace defaults to cwd, so omitting it is harmless *when run from
+        inside the workspace* — which is why the trap survives casual testing.
+        The orchestrator's cwd is not $REPO_OR_WORKTREE, so here the default is
+        wrong, the session forks with no error, and the panelist answers from an
+        empty context: the confident fabricated file path review.md calls
+        disqualifying. Measured 2026-09-02. Every call is checked, because the
+        trap needs only one to miss it.
         """
         body = SKILL.read_text()
         # Scan by offset, not by str.index(line): the two invocations are

@@ -15,7 +15,7 @@ is real. A finding only one raises is a hypothesis that must survive debate.
 
 Determine which runtime you are, then the panel is everyone else:
 
-| You are | Your peer (1.0) | Cross-lineage (0.95) | Advisor (0.5) |
+| You are | Your peer (1.0) | Cross-lineage (1.0) | Advisor (0.5) |
 | --- | --- | --- | --- |
 | **Claude Code** | Codex — `codex exec -s read-only` | Cursor/Grok — `cursor-agent -p` | Gemini — `gemini -p` |
 | **Codex** | Claude — `claude -p` | Cursor/Grok — `cursor-agent -p` | Gemini — `gemini -p` |
@@ -138,6 +138,25 @@ Examples:
 ```bash
 SP="${CLAUDE_SCRATCHPAD:-$(mktemp -d)}/tribunal"   # never /tmp/*.txt globs
 mkdir -p "$SP"
+```
+
+Source the direct transport. Debate and rebuttal run through it, so check its
+credentials now rather than mid-round — but **only when those rounds will
+actually run**. `quick` stops after the merge and `solo` has no panel, so
+neither ever calls the transport; failing them over a credential they do not
+use turns a working review into no review.
+
+A missing credential is not fatal either way. Each seat falls back to its CLI,
+which is what the panel did before this transport existed, so the run degrades
+to slower and more expensive rather than stopping. Say so and continue.
+
+```bash
+for D in ~/.agents/skills ~/.claude/skills ~/.codex/skills; do
+  [ -f "$D/tribunal-review/panel/direct.sh" ] && . "$D/tribunal-review/panel/direct.sh" && break
+done
+# Skip entirely on quick and solo. Otherwise warn, never exit: the seats fall
+# back to their CLIs, and a degraded panel beats an aborted one.
+direct_preflight || echo "tribunal: debate/rebuttal will use the CLIs; note it in the Step 6 header" >&2
 ```
 
 Write every prompt to a file under `$SP` and feed it on **stdin** (`… - < "$SP/prompt.md"`).
@@ -263,8 +282,15 @@ GEMINI_PID=$!
 PANEL_PIDS+=("$GEMINI_PID")
 
 # --- Cursor / Grok 4.6 ---------------------------------------------------
+# One chat for the whole panel. Later rounds resume it instead of resending
+# the diff. --workspace must repeat on every turn with the same value: the
+# chat is keyed on the effective workspace, and the flag defaults to cwd, so
+# a resumed turn run from elsewhere forks the session silently and the seat
+# answers from an empty context.
+CURSOR_CHAT=$(cursor-agent create-chat 2>/dev/null | tr -d '[:space:]')
 cursor-agent -p --trust --mode ask --model cursor-grok-4.6-high \
-    --output-format text --workspace "$REPO_OR_WORKTREE" \
+    --resume "$CURSOR_CHAT" --workspace "$REPO_OR_WORKTREE" \
+    --output-format text \
     < "$SP/prompt-cursor.md" > "$SP/cursor.txt" 2>"$SP/cursor.log" &
 CURSOR_PID=$!
 PANEL_PIDS+=("$CURSOR_PID")
@@ -403,25 +429,35 @@ ways = one issue citing both. Severity disagreement = take the highest, note it.
 
 | Agreement                 | Weight         | Route                  |
 | ------------------------- | -------------- | ---------------------- |
-| all four                     | 3.45 UNANIMOUS | consensus              |
-| both trusted (you + peer)    | 2.0 STRONG     | consensus              |
-| one trusted + Cursor/Grok    | 1.95 STRONG    | consensus              |
-| one trusted + Gemini         | 1.5 SUFFICIENT | consensus              |
-| Cursor/Grok + Gemini         | 1.45 SUFFICIENT| consensus              |
-| one trusted alone            | 1.0            | **contested** → debate |
-| Cursor/Grok alone            | 0.95           | **contested** → debate |
+| all four                     | 3.5 UNANIMOUS  | consensus              |
+| any two full-weight seats    | 2.0 STRONG     | consensus              |
+| one full-weight + Gemini     | 1.5 SUFFICIENT | consensus              |
+| one full-weight alone        | 1.0            | **contested** → debate |
 | Gemini alone                 | 0.5            | **contested** → debate |
 
-Cursor/Grok sits at **0.95 deliberately**, not 1.0: near-peer, but never able to
-do alone what a trusted reviewer does alone. Pair it with anyone and the pair
-clears consensus; leave it alone and it argues its case like any single voice.
+Three seats carry **1.0**: you, your peer, and Cursor/Grok. Only Gemini is
+discounted, because it is an advisor that does not run inside the repository.
+
+Cursor/Grok held 0.90 until 2026-09-02 on the theory that its rounds share one
+conversation, so it would defend its review position rather than re-derive it.
+The first run that actually measured this found the opposite: asked to debate a
+finding it had raised itself, it re-derived the question and ruled its own
+finding INVALID. Session memory is real — confirmed on a third turn, told to
+answer without tools, it recalled its finding count and quoted its own title
+verbatim — but the bias that memory was supposed to cause did not appear. A
+discount with no evidence behind it is just a number, so the seat is a peer.
+
+**None of these weights are calibrated.** They encode lineage independence, not
+measured accuracy: three seats that reason from different training runs, and one
+that only advises. The honest way to change them is a hit-rate — findings that
+survived verification over findings raised — not another argument.
 
 Confidence filter, applied **after** dedup and **before** debate:
 
 - any reporter scored ≥70 → keep, use the highest score
 - all reporters <70 → auto-dismiss into the Low Confidence list
-- weight **≥1.95** bypasses this filter — agreement between two near-full-weight
-  reviewers is itself the evidence. One trusted + Gemini (1.5) does not bypass.
+- weight **≥2.0** bypasses this filter — agreement between two full-weight
+  reviewers is itself the evidence. One full-weight + Gemini (1.5) does not bypass.
 
 Weight measures trust in the reviewer; confidence measures certainty about the
 issue. They are independent. A Gemini-only issue at confidence 95 still goes to
@@ -475,6 +511,67 @@ to the user with the transcript.
 Run debate and rebuttal for all contested items in one batched call each — not one
 call per issue.
 
+Both rounds reason over findings already merged in Step 4. Neither reads the
+repository, so neither pays for a coding-agent CLI: `panel/direct.sh`, sourced
+in Step 2, sends them straight to the model APIs.
+
+Which findings are contested is *your* judgement from Step 4, not something a
+command derives, so write that list out before assembling — the prompt is built
+from the file, and a missing one is a crash, not an empty debate:
+
+```bash
+cat > "$SP/contested.md" <<'EOF'
+ISSUE-N <title> — <reviewer A>: <position>. <reviewer B>: <counter-position>.
+EOF
+```
+
+```bash
+python3 "$TR/prompts/assemble.py" --template debate --class "$TARGET_CLASS" \
+  --focus "$FOCUS" --contested "$SP/contested.md" --code-context "$SP/target.diff" \
+  > "$SP/prompt-debate.md"
+# Your PEER only, per Step 0's table: direct_codex when you are Claude Code,
+# direct_claude when you are Codex. Never both — the other one is your own
+# lineage, it holds no Step 3 findings to defend, and seating it debates
+# against yourself while double-counting your lineage in the weight sum.
+direct_codex "$SP/prompt-debate.md" "$SP/debate-peer.txt" &   # you are Claude Code
+PANEL_PIDS+=("$!")
+# Cursor has no direct path. It resumes the chat Step 3 opened, so it still
+# remembers the diff it read. --workspace is not optional here even though it
+# defaults to cwd: the orchestrator's cwd is not $REPO_OR_WORKTREE, and a
+# mismatch forks the session with no error.
+cursor-agent -p --trust --mode ask --model cursor-grok-4.6-high \
+    --resume "$CURSOR_CHAT" --workspace "$REPO_OR_WORKTREE" \
+    --output-format text \
+    < "$SP/prompt-debate.md" > "$SP/debate-cursor.txt" 2>&1 &
+PANEL_PIDS+=("$!")
+```
+
+Wait for the debate seats before reading their output — they were backgrounded,
+so the files are empty until they finish. Then collect the challenges each seat
+raised and write them out, exactly as with `contested.md`: the rebuttal prompt
+is built from a file, and a missing one is a crash rather than an empty round.
+
+```bash
+for P in "${PANEL_PIDS[@]}"; do wait "$P"; done
+cat > "$SP/challenges.md" <<'EOF'
+ISSUE-N — <challenger>: <the attack raised in debate, verbatim enough to answer>
+EOF
+
+python3 "$TR/prompts/assemble.py" --template rebuttal --class "$TARGET_CLASS" \
+  --focus "$FOCUS" --challenges "$SP/challenges.md" --code-context "$SP/target.diff" \
+  > "$SP/prompt-rebuttal.md"
+direct_codex "$SP/prompt-rebuttal.md" "$SP/rebuttal-peer.txt" &   # your peer only
+PANEL_PIDS+=("$!")
+cursor-agent -p --trust --mode ask --model cursor-grok-4.6-high \
+    --resume "$CURSOR_CHAT" --workspace "$REPO_OR_WORKTREE" \
+    --output-format text \
+    < "$SP/prompt-rebuttal.md" > "$SP/rebuttal-cursor.txt" 2>&1 &
+PANEL_PIDS+=("$!")
+for P in "${PANEL_PIDS[@]}"; do wait "$P"; done
+```
+
+A seat that fell back to its CLI says so on stderr; name it in the Step 6 header.
+
 ## Step 6 — Output
 
 ```markdown
@@ -489,7 +586,7 @@ call per issue.
 #### Focus: <focus text> ← omit this sub-heading when no focus given
 
 - **[CRITICAL]** `file:line` — Title
-  Category: bug | Agreement: unanimous (3.45) | Confidence: 92
+  Category: bug | Agreement: unanimous (3.50) | Confidence: 92
   Raised by: Codex, Claude, Cursor/Grok, Gemini
   Evidence: <the actual code, verified by you>
   Resolution: <concrete fix>
@@ -508,7 +605,7 @@ set, not scattered among bugs:
 ### Unresolved (N) — your call
 
 - **Issue:** …
-  - Opening positions: Peer (1.0) … | Cursor/Grok (0.95) … | Gemini (0.5) … | You (1.0) …
+  - Opening positions: Peer (1.0) … | Cursor/Grok (1.0) … | Gemini (0.5) … | You (1.0) …
   - Challenges that landed: …
   - Rebuttal outcome: who conceded, who defended, on what new evidence
   - **Recommendation:** <your own call, stated plainly>

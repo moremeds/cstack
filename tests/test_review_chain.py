@@ -344,13 +344,51 @@ class TestSeatAvailability(unittest.TestCase):
 
 
 class TestPanelWeights(unittest.TestCase):
-    def test_cursor_alone_cannot_reach_consensus(self):
-        """0.95 is deliberate: near-peer, but never decisive alone."""
+    def _row(self, prefix):
         body = TRIBUNAL.read_text()
-        row = [r for r in body.splitlines() if r.startswith("| Cursor/Grok alone")]
-        self.assertTrue(row, "no weight row for a lone Cursor finding")
-        self.assertIn("contested", row[0], "a lone Cursor finding skips debate")
-        self.assertIn("0.95", row[0])
+        rows = [r for r in body.splitlines() if r.startswith(prefix)]
+        self.assertTrue(rows, f"no weight row starting {prefix!r}")
+        return rows[0]
+
+    def test_a_single_seat_never_reaches_consensus_alone(self):
+        """One voice is one voice, whichever seat it is.
+
+        Cursor/Grok became a full peer on 2026-09-02, so no row distinguishes
+        it from the other 1.0 seats any more. What must not change is that a
+        lone finding argues its case instead of shipping on its own authority.
+        """
+        row = self._row("| one full-weight alone")
+        self.assertIn("contested", row, "a lone finding must go to debate")
+        self.assertIn("1.0", row)
+
+    def test_confidence_bypass_equals_two_full_weight_seats(self):
+        """The bypass threshold is derived, not chosen.
+
+        It means "two full-weight reviewers agreed", so it must equal the
+        two-seat row exactly. Changing a seat's weight without moving this
+        silently starts auto-dismissing low-confidence findings that two
+        full-weight reviewers both reported — or stops bypassing at all.
+        """
+        body = TRIBUNAL.read_text()
+        pair = float(re.search(r"\|\s*([\d.]+) STRONG", self._row("| any two full-weight")).group(1))
+        bypass = float(re.search(r"weight \*\*\u2265([\d.]+)\*\* bypasses", body).group(1))
+        self.assertAlmostEqual(bypass, pair, places=2)
+        self.assertAlmostEqual(pair, 2.0, places=2, msg="two 1.0 seats must sum to 2.0")
+
+    def test_no_stale_weight_survives_anywhere(self):
+        """The number lives in four files; a partial edit is the failure mode.
+
+        SKILL.md, README.md and rules/CLAUDE.md each state Cursor's weight
+        independently, and nothing but this test makes them agree.
+        """
+        root = TRIBUNAL.parent.parent.parent
+        for rel in ("README.md", "rules/CLAUDE.md", "skills/tribunal-review/SKILL.md"):
+            for line in (root / rel).read_text().splitlines():
+                # Table rows and the seat header declare weights; prose may
+                # recount the history, and SKILL.md deliberately does.
+                if line.lstrip().startswith("|") or "weight-" in line:
+                    self.assertNotIn("0.90", line,
+                                     f"{rel} still declares the old Cursor weight: {line.strip()}")
 
     def test_payload_wait_and_panel_cover_the_real_review(self):
         """The panel must see every worktree state and terminate predictably."""

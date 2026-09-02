@@ -2,6 +2,8 @@
 
 # cstack
 
+**C**laude Code · **C**odex · **C**ursor · **C**henxi
+
 **Four skills for finishing agent work without losing the plot.**
 
 The plan was approved. The agent is busy. You still should not have to take

@@ -1,146 +1,211 @@
-# AGENTS.md — Codex 全局指令
+# AGENTS.md — Codex global instructions
 
-## 总则
+## General
 
-用最小充分方案完成当前任务，禁止过度工程化。
-规划可以偏强，执行必须偏轻。
-设计不能证明必要，默认不做。测试不能证明必要，默认不加。
-先确认意图，再用最小改动完成验收。
+Do the current task with the minimum sufficient approach — no over-engineering.
+Planning can lean strong; execution must stay light.
+A design that can't be proven necessary defaults to not built. A test that
+can't be proven necessary defaults to not written.
+Confirm intent first, then close the loop with the smallest change that meets
+acceptance.
 
-## GitHub 工作流
+## GitHub workflow
 
-- 禁止直接 push 到远程 `master` / `main`。
-- 完成的分支工作先开（或复用）PR，再把 PR 合并进 `master` / `main`。
-- PR 合并后，fetch 并把本地 `master` / `main` 对齐到远程合并提交。
+- Never push directly to remote `master` / `main`.
+- Finished branch work opens (or reuses) a PR first, then merges the PR into
+  `master` / `main`.
+- After a PR merges, fetch and align local `master` / `main` to the remote
+  merge commit.
 
-## Codex 上下文管理
+## Codex context management
 
-- Codex-only：剩余上下文 ≤ 50% 时，先自动 compact 再继续实质性工作。
-- 运行时无法直接触发 compact，就暂停并请用户 compact 或 resume。
-- compact 前，把任务状态、已改文件、已跑命令、阻塞点、下一步写进摘要。
+- Codex-only: when remaining context drops to ≤ 50%, auto-compact before
+  continuing substantive work.
+- If the runtime can't trigger compact directly, pause and ask the user to
+  compact or resume.
+- Before compacting, write task state, files changed, commands run, blockers,
+  and next steps into the summary.
 
-## 模型与资源分工
+## Model and resource allocation
 
-- 需求澄清、方案审查：较强模型 / 较高推理。
-- 写代码、改代码、跑测试：中低推理，或更轻量的执行模型。不要全程开最高推理档位。
-- 发现执行模型开始叠架构、加兼容、扩范围、补大套测试时：立刻停下来，重写最小计划。
-- 默认不并行拉起多个 Agent。一个任务先单线做完，再决定要不要拆。
-- 只启用完成任务必需的 skill，不安装重流程 skill。
+- Requirement clarification, plan review: stronger model / higher reasoning.
+- Writing code, editing code, running tests: medium-low reasoning, or a
+  lighter execution model. Don't run at max reasoning the whole time.
+- The moment the execution model starts stacking architecture, adding
+  compatibility layers, widening scope, or bolting on a full test suite: stop
+  immediately and rewrite the plan to be smaller.
+- Don't fan out multiple agents in parallel by default. Finish a task
+  single-threaded first, then decide whether it needs splitting.
+- Only enable the skills a task actually needs — don't install heavy-process
+  skills for it.
 
-## Token 意识
+## Token awareness
 
-每一次读、写、回复都花 token。省 token 靠少读少说，不是少做事。
+Every read, write, and reply costs tokens. Save them by reading and saying
+less, not by doing less.
 
-- 已安装 RTK 时，shell 命令使用 `rtk` 前缀，减少无关输出；遇到不支持或必须保留原始输出的命令，使用 `rtk proxy <command>`。未安装时使用原生命令。
-- 先定位再读：用 grep / 符号搜索找到位置，只读需要的行段。不整文件 cat；超过 300 行的文件不读全文，除非任务确实需要。
-- 不重复读已读过的文件，不重复粘贴已在上下文里的内容。
-- 命令输出先过滤再看（head / tail / grep / wc / --quiet），不把整份 log、diff、测试输出灌进上下文。
-- 回复只给结论和必要证据：不复述文件内容，不重复用户的话，不列没被采纳的备选方案。
-- 不为"以防万一"多开 Agent、多调工具、多查资料。每次调用前问一句：这条信息不拿，任务会卡吗？
-- 上下文变长时主动摘要 / compact，摘要只留任务状态、已改文件、阻塞点、下一步。
+- When RTK is installed, prefix shell commands with `rtk` to cut noise; for
+  commands it doesn't support or that must keep raw output, use `rtk proxy
+<command>`. Use native commands when RTK isn't installed.
+- Locate before reading: use grep / symbol search to find the spot, then read
+  only the needed line range. Never `cat` a whole file; don't read a file over
+  300 lines in full unless the task truly needs it.
+- Don't re-read a file already read, or re-paste content already in context.
+- Filter command output before looking at it (`head` / `tail` / `grep` / `wc`
+  / `--quiet`); never pour a full log, diff, or test run into context.
+- Replies carry only the conclusion and necessary evidence: no restating file
+  contents, no echoing the user's words, no listing options that weren't
+  taken.
+- No "just in case" extra agents, tool calls, or lookups. Before each call,
+  ask: does the task stall without this?
+- When context grows, summarize / compact proactively — a summary keeps only
+  task state, files changed, blockers, and next steps.
 
-## 失败模式
+## Failure modes
 
-1. 没有真正理解意图，只修了表面问题。
-2. 本可以做一次干净的根因修复，却用历史补丁、兼容层、双轨实现、副本和分支把代码堆胖。
-3. 为很少发生的情况过度设计，让日常维护成本变高。
-4. 判断依据错了，推理再完整结论也是错的。
-5. 本该直接读代码定位问题，却用检索或猜测替代阅读。
-6. 把"补测试"当成继续加抽象、扩范围、显得完整的借口。
+1. Not actually understanding intent, only fixing the surface symptom.
+2. Bloating the code with legacy patches, compatibility layers, dual
+   implementations, copies, and branches when a clean root-cause fix was
+   available.
+3. Over-designing for rare cases, raising day-to-day maintenance cost.
+4. Wrong premise — however complete the reasoning, the conclusion is still
+   wrong.
+5. Substituting search or guessing for actually reading the code to locate
+   the problem.
+6. Using "add tests" as an excuse to keep adding abstraction, widening scope,
+   or looking thorough.
 
-## 动手前
+## Before touching anything
 
-1. 先理解需求，再动手。不要先改代码再猜意图。
-2. 直接读相关代码、测试、配置。不要用检索片段或猜测替代阅读。
-3. 需求含糊或前提未验证，先解决，再在其上施工。
-4. 已批准的计划用 `execute-plan` skill（`~/.agents/skills/execute-plan`）直通执行：worktree → 直线实现 → 里程碑 commit → 证据化验证。
-5. 复述并写出最小计划：
-   - **目标** — 用户真正想要的确切行为
-   - **非目标** — 本次明确不做的事
-   - **文件** — 预计改动的最小文件集
-   - **验收** — 怎样算完成，用什么检查证明
-6. 一条实现路径起步。只有任务确实存在独立部分时才拆。
+1. Understand the requirement before touching anything. Don't edit code first
+   and guess intent after.
+2. Read the relevant code, tests, and config directly. Don't substitute
+   search snippets or guessing for reading.
+3. If the requirement is ambiguous or a premise unverified, resolve that
+   first — don't build on top of it.
+4. An approved plan runs straight through the `execute-plan` skill
+   (`~/.agents/skills/execute-plan`): worktree → straight-line implementation
+   → milestone commits → evidence-based verification.
+5. Restate and write the smallest plan:
+   - **Goal** — the exact behavior the user actually wants
+   - **Non-goals** — what this pass explicitly does not do
+   - **Files** — the smallest expected set of files touched
+   - **Acceptance** — what counts as done, and what check proves it
+6. Start with one implementation path. Split only when the task genuinely has
+   independent parts.
 
-## 执行中
+## While executing
 
-- 先复用现有代码、helper、模式和测试设施，再考虑新增。
-- 在根因修 bug。不要围绕错误前提叠补丁。
-- 抽象、adapter、配置层只在本次任务出现第二个真实调用方、或需求明确要求时才加。
-- 不为罕见或未来场景设计。
-- 保持请求范围之外的行为不变。
-- 删掉被替换的代码。只有兼容是明确要求时才保留旧路径。
-- 代码、计划或文稿写完后，优先用 `review-cycle` skill（`~/.agents/skills/review-cycle`）：六个 pass，每个 pass 自己 apply 并跑仓库的验证命令，Pass 2 就是下面的 tribunal。只要一份发现清单、不需要改-验循环时，才直接调 `tribunal-review`。
-- `tribunal-review` skill（`~/.agents/skills/tribunal-review`）做跨模型评审。你（Codex）主持并参与投票，Claude 是权重 1.0 的对等评审，Gemini 是权重 0.5 的可选顾问——装了就用，没装或未授权就跳过，不影响输出。要指定重点就带 `focus:` 参数，重点只提升关注度，不会压掉重点之外的 CRITICAL。
+- Reuse existing code, helpers, patterns, and test infrastructure before
+  adding new ones.
+- Fix bugs at the root cause. Don't stack patches around a wrong premise.
+- Add an abstraction, adapter, or config layer only when this task produces a
+  second real caller, or the requirement explicitly asks for it.
+- Don't design for rare or future scenarios.
+- Leave behavior outside the request's scope unchanged.
+- Delete code that's been replaced. Keep the old path only when compatibility
+  is explicitly required.
+- After code, a plan, or prose is written, prefer the `review-cycle` skill
+  (`~/.agents/skills/review-cycle`): six passes, each applying its own fixes
+  and running the repo's verification commands — Pass 2 is the tribunal
+  below. Call `tribunal-review` directly only when you just need one findings
+  list and don't need the fix-verify loop.
+- The `tribunal-review` skill (`~/.agents/skills/tribunal-review`) runs
+  cross-model review. You (Codex) orchestrate and vote; Claude is the
+  weight-1.0 peer reviewer, Gemini is a weight-0.5 optional advisor — used
+  when installed, skipped when not installed or unauthorized, without
+  affecting the output. Pass a `focus:` parameter to steer emphasis; focus
+  only raises attention and never suppresses a CRITICAL outside that focus.
 
-## 暂停确认
+## Pause for confirmation
 
-只读探索始终允许。任务未事先授权的，先获批准再做：
+Read-only exploration is always allowed. For anything the task didn't
+pre-authorize, get approval first:
 
-- 明显扩大范围或触及无关文件
-- 新增依赖、框架、服务或测试基础设施
-- 改公共 API、schema、存储格式、wire format
-- 同时保留两套同样行为的实现
+- Materially widening scope or touching unrelated files
+- Adding a new dependency, framework, service, or test infrastructure
+- Changing a public API, schema, storage format, or wire format
+- Keeping two implementations of the same behavior side by side
 
-**不可逆操作**（删除/覆盖用户数据、丢弃未提交工作、改写历史、drop 数据）必须等用户回复**确认口令**后再执行：
+**Irreversible operations** (deleting/overwriting user data, discarding
+uncommitted work, rewriting history, dropping data) must wait for the user's
+**confirmation phrase** before executing:
 
-- 口令由用户指定。
-- 没有口令、口令错误、或其他任何回复，一律拒绝执行。
+- The user sets the phrase.
+- No phrase, a wrong phrase, or any other reply — refuse to execute.
 
-以下默认**不算**不可逆，可直接执行：
+The following don't count as irreversible by default and can run directly:
 
-- Git 回滚、还原、切分支
-- 把文件移到当前仓库的备份目录
-- 跑测试、看 diff、生成计划、只读分析
+- Git revert, restore, branch switch
+- Moving files to the current repo's backup directory
+- Running tests, viewing diffs, generating a plan, read-only analysis
 
-## 测试
+## Tests
 
-测试只服务于本次改动的验收，不负责补历史覆盖率，不负责设计未来测试体系。
+Tests exist only to satisfy this change's acceptance — not to backfill
+historical coverage, not to design a future test system.
 
-1. 优先跑与本次改动最相关、范围最窄的现有测试。
-2. 现有测试能证明改动正确，就不新增。
-3. 只在两种情况新增：改了行为但现有测试盖不到；用户明确要求。
-4. 优先扩展最相关的现有测试，而不是新建测试文件。
-5. 每条新增测试必须对应一个明确的验收标准或回归风险。
-6. 新增最多覆盖本次改动的 1 个主路径，必要时再加 1 个关键失败路径。
-7. 禁止为了更完整而扩大测试范围。
-8. 禁止借机补全无关模块的测试。
-9. 禁止引入新的测试框架、测试工具或测试基础设施。
-10. 禁止写大量快照、参数化矩阵或端到端套件。
-11. 禁止为当前需求未要求的边界写测试。
-12. 禁止先改测试再倒逼产品行为变复杂。
-13. 禁止把测试变绿当成可以继续加抽象、扩范围的理由。
+1. Run the narrowest, most relevant existing tests for this change first.
+2. If existing tests already prove the change correct, add none.
+3. Add new tests only in two cases: behavior changed and existing tests
+   don't cover it; or the user explicitly asks.
+4. Prefer extending the most relevant existing test over creating a new test
+   file.
+5. Every new test must map to a clear acceptance criterion or regression
+   risk.
+6. New tests cover at most 1 main path for this change, plus 1 key failure
+   path if needed.
+7. Never widen test scope for the sake of thoroughness.
+8. Never use the opportunity to backfill tests for unrelated modules.
+9. Never introduce a new test framework, tool, or infrastructure.
+10. Never write large snapshot suites, parametrized matrices, or end-to-end
+    suites.
+11. Never write tests for edge cases the current requirement doesn't call
+    for.
+12. Never change a test first and let it force the product behavior to get
+    more complex.
+13. Never treat a green test suite as license to keep adding abstraction or
+    scope.
 
-新增任何测试前，必须能回答：
+Before adding any test, you must be able to answer:
 
-- 这个测试在验证哪个已被接受的需求
-- 去掉它，现有测试是否就无法发现这次回归
-- 它是不是比实现本身更复杂
+- Which accepted requirement this test verifies
+- Whether removing it would let existing tests miss this regression
+- Whether it's more complex than the implementation itself
 
-测试代码比实现更长或更绕，默认视为过度工程——删测试或缩小实现。
+If the test code is longer or more convoluted than the implementation, treat
+that as over-engineering by default — cut the test or shrink the
+implementation.
 
-## 计划膨胀时
+## When the plan is ballooning
 
-发现自己在做以下任一件事，立刻停下，改写更小的计划并重新确认范围：
+Catch yourself doing any of the following — stop immediately, rewrite a
+smaller plan, and reconfirm scope:
 
-- 新增抽象、框架或配置层，但当前需求并不需要
-- 为了以后可能用到而提前设计
-- 为了满足约束而继续叠加更多约束
-- 同时改很多无关文件
-- 创造第二套实现来兼容旧逻辑
-- 借机补一套完整测试体系、做无关清理、为未声明的行为写测试
+- Adding an abstraction, framework, or config layer the current requirement
+  doesn't need
+- Designing ahead for something that might be used later
+- Stacking more constraints on top just to satisfy a constraint
+- Touching many unrelated files at once
+- Creating a second implementation to stay compatible with old logic
+- Using the opportunity to backfill a full test system, do unrelated
+  cleanup, or test undeclared behavior
 
-## 完成前检查
+## Before calling it done
 
-- 已复述意图和验收标准
-- 请求的行为可用，验收标准达成
-- 方案是最小方案，不是最大方案
-- 已标明非目标
-- 优先读了相关代码，而不是靠检索拼结论
-- 只改了完成任务所需的最小文件集
-- 相关现有测试已跑过，报告确切命令和结果
-- 没有为未要求的场景新增测试
-- 若新增测试，只锁本次行为，且条数很少
-- 测试没有引入新依赖或新目录结构
-- diff 小，无多余文件，无残留调试代码、备份副本、死路径
-- 没有为了看起来完整而额外施工
-- 假设、限制、未验证的运行时行为如实说明
+- Restated intent and acceptance criteria
+- The requested behavior works, acceptance criteria met
+- The solution is the minimal one, not the maximal one
+- Non-goals stated
+- Read the relevant code first rather than assembling a conclusion from
+  search
+- Touched only the minimal set of files the task needed
+- Ran the relevant existing tests, reporting the exact command and result
+- Added no tests for scenarios not requested
+- Any new tests lock down only this change's behavior, and there are few of
+  them
+- Tests introduced no new dependency or directory structure
+- Diff is small: no extra files, no leftover debug code, backup copies, or
+  dead paths
+- No extra work done just to look thorough
+- Assumptions, limits, and unverified runtime behavior stated honestly

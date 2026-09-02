@@ -4,8 +4,8 @@
 
 **C**laude Code · **C**odex · **C**ursor · **C**henxi
 
-*One agent configuration shared across three runtimes,
-plus the person who has to live with what they produce.*
+_One agent configuration shared across three runtimes,
+plus the person who has to live with what they produce._
 
 ![license](https://img.shields.io/badge/license-MIT-black)
 ![runtimes](https://img.shields.io/badge/runtimes-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Cursor-black)
@@ -62,15 +62,15 @@ it is the one you run when you stop trusting the narration.
 
 Two instances of the same model share the same blind spots, so a second opinion
 from the same lineage is not a second opinion. Whoever invokes this orchestrates
-*and* votes; the other CLIs review independently and findings merge by weighted
+_and_ votes; the other CLIs review independently and findings merge by weighted
 consensus.
 
-| Seat | Weight |
-| --- | --- |
-| orchestrator | **1.0** |
-| peer runtime | **1.0** |
+| Seat          | Weight  |
+| ------------- | ------- |
+| orchestrator  | **1.0** |
+| peer runtime  | **1.0** |
 | Cursor / Grok | **1.0** |
-| Gemini | 0.5 |
+| Gemini        | 0.5     |
 
 Two reviewers agreeing clears consensus; one alone goes to debate and rebuttal.
 
@@ -88,7 +88,7 @@ Two reviewers agreeing clears consensus; one alone goes to debate and rebuttal.
 
 Self-review → tribunal → adversarial → simplicity → cumulative re-read →
 assumption check → confidence calibration. Each pass applies its own fixes and
-re-runs the repo's own verification commands *before* the next pass starts, so
+re-runs the repo's own verification commands _before_ the next pass starts, so
 the expensive passes spend their attention on a clean artifact instead of
 re-finding bugs you already knew about.
 
@@ -151,16 +151,16 @@ your own.
 Rules the agent merely reads are suggestions. These return **exit 2**, which
 blocks the tool call and feeds the reason back to the model.
 
-| Hook | Does |
-| --- | --- |
-| `git-guard.sh` | blocks direct pushes to `master`/`main` and AI attribution trailers; warns on `git add -A` |
-| `ci-green-before-merge.sh` | intercepts `gh pr merge`, blocks while any check is failing or pending |
-| `format-on-write.sh` | formats by extension after every write; always exits 0, so a missing formatter never blocks an edit |
-| `lint-on-edit.sh` | lints the edited file, capped at 10 lines so the model can actually react |
-| `test-on-edit.sh` | runs the nearest project's tests — opt-in via a `.claude/test-on-edit` marker |
-| `auto-commit.sh` | commits on stop — opt-in via a `.claude/auto-commit` marker |
-| `log-commands.sh` | appends every Bash command to a timestamped log |
-| `rtk-rewrite.sh` | routes commands through `rtk`, a token-saving CLI proxy, when installed |
+| Hook                       | Does                                                                                                |
+| -------------------------- | --------------------------------------------------------------------------------------------------- |
+| `git-guard.sh`             | blocks direct pushes to `master`/`main` and AI attribution trailers; warns on `git add -A`          |
+| `ci-green-before-merge.sh` | intercepts `gh pr merge`, blocks while any check is failing or pending                              |
+| `format-on-write.sh`       | formats by extension after every write; always exits 0, so a missing formatter never blocks an edit |
+| `lint-on-edit.sh`          | lints the edited file, capped at 10 lines so the model can actually react                           |
+| `test-on-edit.sh`          | runs the nearest project's tests — opt-in via a `.claude/test-on-edit` marker                       |
+| `auto-commit.sh`           | commits on stop — opt-in via a `.claude/auto-commit` marker                                         |
+| `log-commands.sh`          | appends every Bash command to a timestamped log                                                     |
+| `rtk-rewrite.sh`           | routes commands through `rtk`, a token-saving CLI proxy, when installed                             |
 
 `git-guard.sh` reads `GIT_GUARD_PR_EXEMPT` — colon-separated repo paths whose
 documented workflow really is direct-push. Unset by default: nothing is exempt.
@@ -208,15 +208,30 @@ remotes; add your own before publishing.
 
 ## Install
 
+### As a plugin (Claude Code)
+
+```
+/plugin marketplace add moremeds/cstack
+/plugin install cstack@cstack
+```
+
+Pulls `skills/`, `commands/`, and `hooks/` as-is — they already sit at the
+plugin's default paths, nothing was moved to package this. `rules/`, `docs/`,
+and `tests/` are not plugin components and are ignored by the installer.
+`review-cycle` calls `tribunal-review` as Pass 2, so the four skills install
+together as one plugin rather than split apart.
+
+### From a checkout (this machine's own setup)
+
 Clone, then link each public surface directly from this checkout:
 
-| From | To |
-| --- | --- |
-| `rules/CLAUDE.md` | `~/.claude/CLAUDE.md` |
-| `rules/AGENTS.md` | `~/.codex/AGENTS.md` |
-| `hooks/*.sh` | `~/.claude/hooks/*.sh` |
-| `commands/*.md` | `~/.claude/commands/*.md` |
-| `skills/*` | `~/.claude/skills/*` **and** `~/.agents/skills/*` |
+| From              | To                                                |
+| ----------------- | ------------------------------------------------- |
+| `rules/CLAUDE.md` | `~/.claude/CLAUDE.md`                             |
+| `rules/AGENTS.md` | `~/.codex/AGENTS.md`                              |
+| `hooks/*.sh`      | `~/.claude/hooks/*.sh`                            |
+| `commands/*.md`   | `~/.claude/commands/*.md`                         |
+| `skills/*`        | `~/.claude/skills/*` **and** `~/.agents/skills/*` |
 
 > [!WARNING]
 > Use symlinks, not copies. Editing through a live path then writes back here, so

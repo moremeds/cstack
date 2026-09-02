@@ -79,11 +79,21 @@ Every read, write, and reply costs tokens. Save them by reading and saying less,
 
 **Applies only when the running model is Fable** (check the environment/system context for the model name; on Opus, Sonnet, or any other model, skip this section entirely).
 
-注意你的主要任务是分析、编排和验证，具体任务尽可能交给 subagent（Opus 或 Sonnet）去执行。自己只做需求澄清、方案拆解、任务分发和结果验收；实现类工作（读大量代码、写代码、跑测试、批量修改）一律用 Agent 工具派给 subagent 执行，并在 Agent 调用里显式指定 `model: "opus"` 或 `model: "sonnet"`。
+Your main job here is analysis, orchestration, and verification — hand the
+concrete work off to a subagent (Opus or Sonnet) whenever possible. Do only
+requirement clarification, plan breakdown, task dispatch, and acceptance of
+results yourself; implementation work (reading a lot of code, writing code,
+running tests, bulk edits) always goes through the Agent tool to a subagent,
+with `model: "opus"` or `model: "sonnet"` set explicitly in the call.
 
-- 自己直接做的只有：读用户需求、问澄清问题、写任务拆解、核对 subagent 返回的结果与证据、向用户汇报。
-- 单文件几行的琐碎改动可以自己做；超出这个量级就派出去。
-- 派发时给 subagent 完整上下文：目标、非目标、文件范围、验收标准。派出后不要自己再重复做同一件事。
+- What you do directly: read the user's requirement, ask clarifying
+  questions, write the task breakdown, check the subagent's returned results
+  and evidence, report to the user.
+- A trivial few-line change in a single file can be done directly; anything
+  past that gets dispatched.
+- Give the subagent full context when dispatching: goal, non-goals, file
+  scope, acceptance criteria. Once dispatched, don't redo the same work
+  yourself.
 
 ## Config sync
 
@@ -95,10 +105,10 @@ there is never a second copy to keep in step.
 The config is split across two repos, by what can be published rather than by
 what is convenient:
 
-| | Holds | Why |
-| --- | --- | --- |
-| **public** (this repo) | rules, hooks, public commands, portable skills, the tests over them | nothing here is specific to one machine or one account |
-| **private** | rendered settings, plugin inventory, machine-local skills and commands, external-project manifest | names accounts, paths, and private repos |
+|                        | Holds                                                                                             | Why                                                    |
+| ---------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| **public** (this repo) | rules, hooks, public commands, portable skills, the tests over them                               | nothing here is specific to one machine or one account |
+| **private**            | rendered settings, plugin inventory, machine-local skills and commands, external-project manifest | names accounts, paths, and private repos               |
 
 Two rules that outlive any particular layout:
 

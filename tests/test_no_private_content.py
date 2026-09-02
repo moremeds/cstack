@@ -19,7 +19,10 @@ ROOT = Path(__file__).resolve().parents[1]
 # Add your own before publishing: employer, private orgs, internal hostnames.
 FORBIDDEN = [
     (r"/Users/(?!\$|<)[a-z]", "an absolute home path leaks the local username"),
-    (r"\b(?:\d{1,3}\.){3}\d{1,3}\b", "a bare IP address may be internal infrastructure"),
+    (
+        r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
+        "a bare IP address may be internal infrastructure",
+    ),
     (r"[\w.+-]+@[\w-]+\.[\w.]+", "an email address"),
     (r"git@github\.com:[\w-]+/", "an SSH remote names the org and repo"),
 ]
@@ -50,16 +53,22 @@ class TestNoPrivateContent(unittest.TestCase):
                             continue
                         rel = p.relative_to(ROOT)
                         hits.append(f"{rel}:{n}: {m.group(0)!r} — {why}")
-        self.assertEqual([], hits, "private content would be published:\n" + "\n".join(hits))
+        self.assertEqual(
+            [], hits, "private content would be published:\n" + "\n".join(hits)
+        )
 
 
 class TestCodexGlobalRules(unittest.TestCase):
     def test_rtk_rule_is_an_explicit_bullet_without_import(self):
         agents = (ROOT / "rules" / "AGENTS.md").read_text()
+        # Whitespace-tolerant: prettier reflows this bullet's line wrapping,
+        # and where it breaks around the inline `rtk proxy <command>` span
+        # has shifted before — match wording, not exact line breaks.
         rule = (
-            r"(?m)^- 已安装 RTK 时，shell 命令使用 `rtk` 前缀，减少无关输出；"
-            r"遇到不支持或必须保留原始输出的命令，使用 `rtk proxy <command>`。"
-            r"未安装时使用原生命令。$"
+            r"(?m)^-\s+When\s+RTK\s+is\s+installed,\s+prefix\s+shell\s+commands\s+"
+            r"with\s+`rtk`\s+to\s+cut\s+noise;\s+for\s+commands\s+it\s+doesn't\s+"
+            r"support\s+or\s+that\s+must\s+keep\s+raw\s+output,\s+use\s+`rtk\s+proxy\s+"
+            r"<command>`\.\s+Use\s+native\s+commands\s+when\s+RTK\s+isn't\s+installed\.$"
         )
         self.assertRegex(agents, rule)
         self.assertNotRegex(agents, r"(?m)^\s*@")

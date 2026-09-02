@@ -516,10 +516,12 @@ EOF
 ```bash
 python3 "$TR/prompts/assemble.py" --template debate --class "$TARGET_CLASS" \
   --focus "$FOCUS" --contested "$SP/contested.md" --code-context "$SP/target.diff" \
-  > "$SP/prompt-debate-codex.md"
-direct_codex "$SP/prompt-debate-codex.md" "$SP/debate-codex.txt" &
-PANEL_PIDS+=("$!")
-direct_claude "$SP/prompt-debate-codex.md" "$SP/debate-claude.txt" &
+  > "$SP/prompt-debate.md"
+# Your PEER only, per Step 0's table: direct_codex when you are Claude Code,
+# direct_claude when you are Codex. Never both — the other one is your own
+# lineage, it holds no Step 3 findings to defend, and seating it debates
+# against yourself while double-counting your lineage in the weight sum.
+direct_codex "$SP/prompt-debate.md" "$SP/debate-peer.txt" &   # you are Claude Code
 PANEL_PIDS+=("$!")
 # Cursor has no direct path. It resumes the chat Step 3 opened, so it still
 # remembers the diff it read. --workspace is not optional here even though it
@@ -528,7 +530,7 @@ PANEL_PIDS+=("$!")
 cursor-agent -p --trust --mode ask --model cursor-grok-4.6-high \
     --resume "$CURSOR_CHAT" --workspace "$REPO_OR_WORKTREE" \
     --output-format text \
-    < "$SP/prompt-debate-codex.md" > "$SP/debate-cursor.txt" 2>&1 &
+    < "$SP/prompt-debate.md" > "$SP/debate-cursor.txt" 2>&1 &
 PANEL_PIDS+=("$!")
 ```
 

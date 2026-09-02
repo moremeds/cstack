@@ -255,6 +255,21 @@ class TestSkillWiring(unittest.TestCase):
         self.assertIn("direct.sh", step5)
         self.assertIn("direct_codex", step5)
 
+    def test_step5_seats_one_peer_not_both(self):
+        """Step 0: the panel is everyone else, so exactly one peer is yours.
+
+        Dispatching direct_codex and direct_claude together seats a panelist of
+        the orchestrator's own lineage. It never reviewed in Step 3, so it
+        debates findings it never made, and its weight double-counts the
+        lineage the 1.0/0.90 split exists to keep independent.
+        """
+        step5 = self._step("## Step 5 — Debate, then rebuttal")
+        # Invocations only: the comment above the call names both functions on
+        # purpose, because the orchestrator has to know which one is theirs.
+        seats = [ln.strip() for ln in step5.splitlines()
+                 if ln.lstrip().startswith(("direct_codex ", "direct_claude "))]
+        self.assertEqual(len(seats), 1, f"expected one peer seat, got {seats}")
+
     def test_step5_does_not_spawn_a_codex_cli(self):
         """The whole point: debate and rebuttal stop paying the CLI floor."""
         step5 = self._step("## Step 5 — Debate, then rebuttal")

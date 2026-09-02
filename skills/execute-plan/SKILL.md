@@ -25,13 +25,13 @@ A longer variant of the same request shows up just as often: write the plan, rev
 
 Route by the capabilities actually available. Do not infer a runtime name:
 
-| Capability | Use |
-|---|---|
-| `TaskCreate` / `TaskUpdate` / `TaskList` | Track milestones and review gates with those tools |
-| `update_plan` | Track the same entries there, with at most one `in_progress` |
-| neither tracker | Keep the milestone list in the reply; tracking is not an execution gate |
-| structured question tool | Use it for the one permitted blocking decision |
-| no structured question tool | Ask one bounded standalone question as the entire reply |
+| Capability                               | Use                                                                     |
+| ---------------------------------------- | ----------------------------------------------------------------------- |
+| `TaskCreate` / `TaskUpdate` / `TaskList` | Track milestones and review gates with those tools                      |
+| `update_plan`                            | Track the same entries there, with at most one `in_progress`            |
+| neither tracker                          | Keep the milestone list in the reply; tracking is not an execution gate |
+| structured question tool                 | Use it for the one permitted blocking decision                          |
+| no structured question tool              | Ask one bounded standalone question as the entire reply                 |
 
 This routing remains in force inside skills this invocation calls, including
 `review-cycle`. A nested instruction that names an unavailable tracker maps to
@@ -112,7 +112,7 @@ gate as satisfied by a reviewer that never ran.
 ## Guardrails
 
 - **Don't ask "should I continue?"** The plan was approved before this skill ran. Never end a turn with "want me to…?", "should I…?", "要不要…?", "需要我…?" — make the call yourself and record the decision + rationale as a row in the evidence table. The one exception is a fork that changes scientific/business assumptions or authorization scope, not implementation mechanics. Ask exactly one question through **Runtime routing**; without a structured question tool, make it one bounded standalone question with the decision, options, and impacts.
-- **If a milestone blows up the scope.** Stop, surface what you found, ask. Don't silently expand the plan. Likewise, a materially new user ask mid-run is a **new plan and a new invocation** — don't fold it into this run as open-ended continuation (historical worst case: one invocation absorbed 4 unplanned branches and 3.6k turns).
+- **If a milestone blows up the scope.** Stop, surface what you found, ask. Don't silently expand the plan. Likewise, a materially new user ask mid-run is a **new plan and a new invocation** — don't fold it into this run as open-ended continuation (an unbounded run that keeps absorbing new asks is how a single invocation ends up spanning far more branches and turns than the original plan called for).
 - **Don't skip the verification step.** "Tests pass" without an artifact is not done. The user will ask "what's the evidence?" — pre-empt that.
 - **No `--no-verify` on commits.** If a hook fails, fix the underlying issue. Per global CLAUDE.md.
 - **Pre-existing untracked files.** Before staging, check `git status -s` for `??` entries that weren't created by this plan. List them explicitly and exclude them. Never `git add -A` or `git add .`.

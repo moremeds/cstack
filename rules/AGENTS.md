@@ -9,6 +9,13 @@ can't be proven necessary defaults to not written.
 Confirm intent first, then close the loop with the smallest change that meets
 acceptance.
 
+Ablation check: on "进行消融实验" — or on your own after finishing a
+nontrivial design/implementation — take each abstraction or design choice you
+just added and try removing it. Still holds without it → it was redundant,
+cut it. Breaks → keep it and say why in one line. "Avoid over-engineering" is
+a static rule a model can rationalize past; actually removing each piece and
+checking is a runnable test. Applies regardless of which model is running.
+
 ## GitHub workflow
 
 - Never push directly to remote `master` / `main`.
@@ -23,8 +30,12 @@ acceptance.
   continuing substantive work.
 - If the runtime can't trigger compact directly, pause and ask the user to
   compact or resume.
-- Before compacting, write task state, files changed, commands run, blockers,
-  and next steps into the summary.
+- Before compacting, write into the summary: difficulties hit and how they
+  were resolved, options tried or rejected and why, exact stated
+  constraints/preferences/decisions (close to the user's own words), current
+  status, open items, and specific details hard to reconstruct (names,
+  numbers, paths, exact wording, commands run) — condense your own reasoning
+  harder than the user's input.
 
 ## Model and resource allocation
 
@@ -58,8 +69,8 @@ less, not by doing less.
   taken.
 - No "just in case" extra agents, tool calls, or lookups. Before each call,
   ask: does the task stall without this?
-- When context grows, summarize / compact proactively — a summary keeps only
-  task state, files changed, blockers, and next steps.
+- When context grows, summarize / compact proactively; see "Codex context
+  management" above for what the summary must preserve.
 
 ## Failure modes
 
@@ -96,6 +107,10 @@ less, not by doing less.
 
 ## While executing
 
+- Finish, don't promise: don't end a turn on "next I'll…" / "want me to…" for
+  a reversible step the request already covers — do it, then report what you
+  did. Stop only for a destructive action, a genuine scope question, or
+  something only the user can supply.
 - Reuse existing code, helpers, patterns, and test infrastructure before
   adding new ones.
 - Fix bugs at the root cause. Don't stack patches around a wrong premise.

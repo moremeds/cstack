@@ -36,14 +36,25 @@ print(claims["https://api.openai.com/auth"]["chatgpt_account_id"])
 PY
 }
 
+_codex_cli() {   # _codex_cli <prompt-file> <out-file> — the fallback, named once
+  codex exec -s read-only --skip-git-repo-check -o "$2" - \
+    < "$1" >>"$2.log" 2>&1
+}
+
 direct_codex() {   # direct_codex <prompt-file> <out-file>
   local prompt="$1" out="$2" tok acct body code
   # $SP survives between runs when CLAUDE_SCRATCHPAD is set, so a leftover
   # answer would make [ ! -s "$out" ] accept the previous run's report as this
   # one's and skip the fallback — a dead seat voting with a stale opinion.
   : > "$out"
-  tok=$(_codex_token) || return 1
-  acct=$(_codex_account "$tok") || return 1
+  # An unreadable credential is a dead seat, and a dead seat must degrade to
+  # the CLI like every other failure here. `return 1` lost the seat outright.
+  tok=$(_codex_token 2>>"$out.log") \
+    || { echo "tribunal: codex auth unreadable, falling back to the CLI" >&2
+         _codex_cli "$prompt" "$out"; return; }
+  acct=$(_codex_account "$tok" 2>>"$out.log") \
+    || { echo "tribunal: codex auth has no account id, falling back to the CLI" >&2
+         _codex_cli "$prompt" "$out"; return; }
 
   body=$(python3 - "$prompt" <<'PY'
 import json, sys
@@ -112,8 +123,7 @@ PY
 
   if [ ! -s "$out" ]; then
     echo "tribunal: codex direct failed (http=$code), falling back to the CLI" >&2
-    codex exec -s read-only --skip-git-repo-check -o "$out" - \
-      < "$prompt" >>"$out.log" 2>&1 || return 1
+    _codex_cli "$prompt" "$out" || return 1
   fi
 }
 

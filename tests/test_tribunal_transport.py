@@ -5,6 +5,8 @@ The suite never makes a network call: every seat is exercised against a stubbed
 the plan's Verification section; CI has no credentials.
 """
 
+import base64
+import json
 import os
 import pathlib
 import re
@@ -20,6 +22,7 @@ SKILL = ROOT / "skills" / "tribunal-review" / "SKILL.md"
 def run_fn(fn, *args, env=None, path_prefix=None):
     """Source direct.sh and call one function, with a stubbed PATH if given."""
     e = dict(os.environ)
+    e["CLAUDE_CODE_OAUTH_TOKEN"] = "test-token-not-a-credential"
     if env is not None:
         e.update(env)
     if path_prefix:
@@ -43,6 +46,24 @@ class StubbedPath(unittest.TestCase):
         # that hangs for minutes. A test that wants the fallback overrides these.
         for cli in ("codex", "claude", "cursor-agent"):
             self._stub(cli, 'echo "UNEXPECTED CLI FALLBACK: %s" >&2; exit 3\n' % cli)
+        self.home = self._fixture_home()
+
+    def _fixture_home(self):
+        """A fake $HOME so the suite never reads the developer's credentials.
+
+        direct_codex parses ~/.codex/auth.json for a bearer token and digs the
+        account id out of that JWT's payload. Run against a real HOME the tests
+        pass only on a machine that happens to be logged in — which is how a
+        suite that must never need credentials came to need them.
+        """
+        home = pathlib.Path(self.tmp) / "home"
+        (home / ".codex").mkdir(parents=True)
+        claims = {"https://api.openai.com/auth": {"chatgpt_account_id": "acct-test"}}
+        payload = base64.urlsafe_b64encode(json.dumps(claims).encode()).rstrip(b"=")
+        jwt = b"header." + payload + b".signature"
+        (home / ".codex" / "auth.json").write_text(
+            json.dumps({"tokens": {"access_token": jwt.decode()}}))
+        return home
 
     def _stub(self, name, body):
         p = self.bin / name
@@ -127,7 +148,7 @@ printf 200
 """)
         out = pathlib.Path(self.tmp) / "codex.txt"
         r = run_fn("direct_codex", self._prompt("review this"), str(out),
-                   path_prefix=str(self.bin))
+                   env={"HOME": str(self.home)}, path_prefix=str(self.bin))
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(out.read_text(), "ISSUE-1 real bug")
 
@@ -143,7 +164,7 @@ printf 200
         out = pathlib.Path(self.tmp) / "codex.txt"
         out.write_text("STALE ANSWER FROM A PREVIOUS RUN")
         run_fn("direct_codex", self._prompt("review this"), str(out),
-               path_prefix=str(self.bin))
+               env={"HOME": str(self.home)}, path_prefix=str(self.bin))
         self.assertEqual(out.read_text().strip(), "fresh")
 
     def test_an_incomplete_stream_falls_back_instead_of_truncating(self):
@@ -169,7 +190,7 @@ printf 200
         self._stub("codex", 'for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done\necho "from the cli" > "$out"\n')
         out = pathlib.Path(self.tmp) / "codex.txt"
         r = run_fn("direct_codex", self._prompt("review this"), str(out),
-                   path_prefix=str(self.bin))
+                   env={"HOME": str(self.home)}, path_prefix=str(self.bin))
         self.assertEqual(out.read_text().strip(), "from the cli")
         self.assertIn("incomplete", r.stderr)
 
@@ -186,9 +207,28 @@ printf 200
 """)
         out = pathlib.Path(self.tmp) / "codex.txt"
         r = run_fn("direct_codex", self._prompt("review this"), str(out),
-                   path_prefix=str(self.bin))
+                   env={"HOME": str(self.home)}, path_prefix=str(self.bin))
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(out.read_text(), "ISSUE-1 ok")
+
+    def test_unreadable_auth_falls_back_instead_of_returning(self):
+        """An auth failure is a dead seat, and a dead seat must degrade.
+
+        `tok=$(_codex_token) || return 1` returned before the fallback could
+        run, so a machine with no ~/.codex/auth.json lost the seat entirely
+        rather than spending a CLI spawn. Raised by both panel seats.
+
+        This also runs the seat with HOME pointed at an empty directory, which
+        is how the suite proves it needs no real credentials.
+        """
+        home = pathlib.Path(self.tmp) / "empty-home"
+        home.mkdir()
+        self._stub("codex", 'for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done\necho "from the cli" > "$out"\n')
+        out = pathlib.Path(self.tmp) / "codex.txt"
+        r = run_fn("direct_codex", self._prompt("review this"), str(out),
+                   env={"HOME": str(home)}, path_prefix=str(self.bin))
+        self.assertEqual(out.read_text().strip(), "from the cli")
+        self.assertIn("auth", r.stderr.lower())
 
     def test_non_200_falls_back_to_the_cli(self):
         """A dead seat silently changes the consensus arithmetic. It must not."""
@@ -196,7 +236,7 @@ printf 200
         self._stub("codex", 'for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done\necho "from the cli" > "$out"\n')
         out = pathlib.Path(self.tmp) / "codex.txt"
         r = run_fn("direct_codex", self._prompt("review this"), str(out),
-                   path_prefix=str(self.bin))
+                   env={"HOME": str(self.home)}, path_prefix=str(self.bin))
         self.assertEqual(out.read_text().strip(), "from the cli")
         self.assertIn("429", r.stderr)
 
@@ -405,6 +445,19 @@ class TestSkillWiring(unittest.TestCase):
         step3 = self._step("## Step 3 — Launch the panel in parallel")
         for fn in ("direct_codex", "direct_claude"):
             self.assertNotIn(fn, step3)
+
+    def test_preflight_never_aborts_the_run(self):
+        """quick and solo never call the transport, and nothing here is fatal.
+
+        `exit 1` on a debate-only credential killed a quick review that would
+        have completed — the panel's own CRITICAL against this PR. And since
+        every seat falls back to its CLI, even a deep run degrades rather than
+        dies, so aborting is wrong in every mode.
+        """
+        text = SKILL.read_text()
+        line = [l for l in text.splitlines() if "direct_preflight" in l and "||" in l]
+        self.assertTrue(line, "preflight is not invoked with a failure branch")
+        self.assertNotIn("exit 1", line[0])
 
     def test_preflight_runs_before_the_panel(self):
         text = SKILL.read_text()

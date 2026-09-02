@@ -140,15 +140,23 @@ SP="${CLAUDE_SCRATCHPAD:-$(mktemp -d)}/tribunal"   # never /tmp/*.txt globs
 mkdir -p "$SP"
 ```
 
-Source the direct transport and check its credentials now. Debate and rebuttal
-run through it, and a credential that is missing there must kill the run before
-the panel spends three CLI spawns discovering it.
+Source the direct transport. Debate and rebuttal run through it, so check its
+credentials now rather than mid-round — but **only when those rounds will
+actually run**. `quick` stops after the merge and `solo` has no panel, so
+neither ever calls the transport; failing them over a credential they do not
+use turns a working review into no review.
+
+A missing credential is not fatal either way. Each seat falls back to its CLI,
+which is what the panel did before this transport existed, so the run degrades
+to slower and more expensive rather than stopping. Say so and continue.
 
 ```bash
 for D in ~/.agents/skills ~/.claude/skills ~/.codex/skills; do
   [ -f "$D/tribunal-review/panel/direct.sh" ] && . "$D/tribunal-review/panel/direct.sh" && break
 done
-direct_preflight || exit 1   # a missing credential dies here, not mid-debate
+# Skip entirely on quick and solo. Otherwise warn, never exit: the seats fall
+# back to their CLIs, and a degraded panel beats an aborted one.
+direct_preflight || echo "tribunal: debate/rebuttal will use the CLIs; note it in the Step 6 header" >&2
 ```
 
 Write every prompt to a file under `$SP` and feed it on **stdin** (`… - < "$SP/prompt.md"`).

@@ -92,3 +92,25 @@ is only useful as a standalone one-shot outside this skill.
 | Claude returns "Approve the plan…" instead of a review, and a file appears in `~/.claude/plans/` | You used `--permission-mode plan`. It is a real read-only guard but it persists a plan and can swallow the report. Use `--restricted --strict-mcp-config` (Step 3, note 4) |
 | Claude wrote a file despite `--allowedTools` / `--disallowedTools` | Neither flag is a sandbox — `--allowedTools` only auto-approves, and an MCP server's shell tool routes around a deny list. Only `--restricted --strict-mcp-config` held in testing |
 
+
+### Why the direct transport uses curl, not Node
+
+`node:https` and `undici` share one TLS stack, and Cloudflare rejects its
+fingerprint at `chatgpt.com/backend-api` with a 403. Reordering ciphers to
+match curl's does not fix it. Measured 2026-09-02; use `curl`.
+
+### Why only `$CLAUDE_CODE_OAUTH_TOKEN`
+
+`$HOME/.claude/.credentials.json` may still exist holding a token the server
+reports as revoked — reading it yields a silent 401 that looks like a dead
+seat. The Keychain entry is live but expires within hours. The env var is a
+long-lived credential and is the only source `direct.sh` reads. Export it from
+`~/.zshenv`: `~/.zshrc` is read by interactive shells only, and a backgrounded
+panelist is not one.
+
+### Round split
+
+Review reads the repository and stays on the CLI. Debate and rebuttal do not,
+and go direct. Do not "simplify" by routing review through `direct.sh` — that
+deletes the check behind `review.md`'s "a wrong file path or line number
+discredits every other finding you make."

@@ -217,5 +217,40 @@ class TestAssemblerTemplates(unittest.TestCase):
         self.assertNotRegex(r.stdout, r"\{[a-z_]+\}")
 
 
+class TestSkillWiring(unittest.TestCase):
+    def _step(self, heading):
+        text = SKILL.read_text()
+        start = text.index(heading)
+        rest = text[start + len(heading):]
+        nxt = re.search(r"\n## ", rest)
+        return rest[: nxt.start()] if nxt else rest
+
+    def test_step5_dispatches_through_direct_sh(self):
+        step5 = self._step("## Step 5 — Debate, then rebuttal")
+        self.assertIn("direct.sh", step5)
+        self.assertIn("direct_codex", step5)
+
+    def test_step5_does_not_spawn_a_codex_cli(self):
+        """The whole point: debate and rebuttal stop paying the CLI floor."""
+        step5 = self._step("## Step 5 — Debate, then rebuttal")
+        self.assertNotIn("codex exec", step5)
+
+    def test_step5_cursor_resumes_rather_than_starting_over(self):
+        """Cursor cannot go direct, so it must at least not re-read the diff."""
+        step5 = self._step("## Step 5 — Debate, then rebuttal")
+        self.assertIn('--resume "$CURSOR_CHAT"', step5)
+
+    def test_review_round_still_gets_the_repository(self):
+        """Mutation guard: this is the regression the whole design avoids."""
+        step3 = self._step("## Step 3 — Launch the panel in parallel")
+        self.assertIn('-C "$REPO_OR_WORKTREE"', step3)
+        self.assertIn("codex exec -s read-only", step3)
+
+    def test_preflight_runs_before_the_panel(self):
+        text = SKILL.read_text()
+        self.assertLess(text.index("direct_preflight"),
+                        text.index("## Step 5 — Debate, then rebuttal"))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -140,6 +140,17 @@ SP="${CLAUDE_SCRATCHPAD:-$(mktemp -d)}/tribunal"   # never /tmp/*.txt globs
 mkdir -p "$SP"
 ```
 
+Source the direct transport and check its credentials now. Debate and rebuttal
+run through it, and a credential that is missing there must kill the run before
+the panel spends three CLI spawns discovering it.
+
+```bash
+for D in ~/.agents/skills ~/.claude/skills ~/.codex/skills; do
+  [ -f "$D/tribunal-review/panel/direct.sh" ] && . "$D/tribunal-review/panel/direct.sh" && break
+done
+direct_preflight || exit 1   # a missing credential dies here, not mid-debate
+```
+
 Write every prompt to a file under `$SP` and feed it on **stdin** (`… - < "$SP/prompt.md"`).
 Never interpolate a prompt through `$(cat …)` — shell escaping mangles code blocks.
 
@@ -480,6 +491,30 @@ to the user with the transcript.
 
 Run debate and rebuttal for all contested items in one batched call each — not one
 call per issue.
+
+Both rounds reason over findings already merged in Step 4. Neither reads the
+repository, so neither pays for a coding-agent CLI: `panel/direct.sh`, sourced
+in Step 2, sends them straight to the model APIs.
+
+```bash
+python3 "$TR/prompts/assemble.py" --template debate --class "$TARGET_CLASS" \
+  --focus "$FOCUS" --contested "$SP/contested.md" --code-context "$SP/target.diff" \
+  > "$SP/prompt-debate-codex.md"
+direct_codex "$SP/prompt-debate-codex.md" "$SP/debate-codex.txt" &
+PANEL_PIDS+=("$!")
+direct_claude "$SP/prompt-debate-codex.md" "$SP/debate-claude.txt" &
+PANEL_PIDS+=("$!")
+# Cursor has no direct path. It resumes the chat Step 3 opened, so it still
+# remembers the diff it read; --workspace must repeat or the session forks.
+cursor-agent -p --trust --mode ask --model cursor-grok-4.6-high \
+    --resume "$CURSOR_CHAT" --workspace "$REPO_OR_WORKTREE" \
+    --output-format text \
+    < "$SP/prompt-debate-codex.md" > "$SP/debate-cursor.txt" 2>&1 &
+PANEL_PIDS+=("$!")
+```
+
+Rebuttal repeats the same shape with `--template rebuttal --challenges`. A seat
+that fell back to its CLI says so on stderr; name it in the Step 6 header.
 
 ## Step 6 — Output
 

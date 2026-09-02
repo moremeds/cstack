@@ -271,6 +271,18 @@ class TestSkillWiring(unittest.TestCase):
         self.assertIn('-C "$REPO_OR_WORKTREE"', step3)
         self.assertIn("codex exec -s read-only", step3)
 
+    def test_every_file_step5_reads_is_written_first(self):
+        """assemble.py reads --contested from disk and raises if it is absent.
+
+        Step 4 merges findings into the orchestrator's own context, not into a
+        file, so nothing produces contested.md unless Step 5 says to. A dangling
+        path here does not degrade the debate round — it aborts it.
+        """
+        step5 = self._step("## Step 5 — Debate, then rebuttal")
+        for path in ("$SP/contested.md",):
+            self.assertLess(step5.index(f'> "{path}"'), step5.index(f'--contested "{path}"'),
+                            f"{path} is read before anything writes it")
+
     def test_preflight_runs_before_the_panel(self):
         text = SKILL.read_text()
         self.assertLess(text.index("direct_preflight"),

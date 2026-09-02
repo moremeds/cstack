@@ -503,6 +503,16 @@ Both rounds reason over findings already merged in Step 4. Neither reads the
 repository, so neither pays for a coding-agent CLI: `panel/direct.sh`, sourced
 in Step 2, sends them straight to the model APIs.
 
+Which findings are contested is *your* judgement from Step 4, not something a
+command derives, so write that list out before assembling — the prompt is built
+from the file, and a missing one is a crash, not an empty debate:
+
+```bash
+cat > "$SP/contested.md" <<'EOF'
+ISSUE-N <title> — <reviewer A>: <position>. <reviewer B>: <counter-position>.
+EOF
+```
+
 ```bash
 python3 "$TR/prompts/assemble.py" --template debate --class "$TARGET_CLASS" \
   --focus "$FOCUS" --contested "$SP/contested.md" --code-context "$SP/target.diff" \

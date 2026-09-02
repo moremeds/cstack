@@ -16,20 +16,22 @@ plus the person who has to live with what they produce._
 
 ---
 
-## Why four layers
+## What this is
 
-Most shared agent configs are a list of rules and nothing else — nothing notices
-when a rule is ignored. This one is four layers, and each exists because the one
-above it cannot enforce itself:
+A **Claude Code / Codex skills plugin**: four portable skills — `execute-plan`,
+`review-cycle`, `tribunal-review`, `whatup` — that chain into a review-and-ship
+workflow. That's the deliverable; install it with `/plugin install` below and
+you have it.
+
+Everything else in the repo (`rules/`, `hooks/`, `tests/`) is scaffolding that
+keeps those skills honest for the maintainer's own daily use — not a separate
+thing you're expected to adopt:
 
 ```
-rules/     what the agent is told         CLAUDE.md, AGENTS.md
-   ↓  who enforces it?
-hooks/     mechanical interception        exit 2 blocks the tool call
-   ↓  who applies it to real work?
-skills/    portable multi-step workflows  the review chain, plus whatup
-   ↓  who keeps these honest?
-tests/     contract tests over all of it  mutation-checked
+skills/    the plugin itself             execute-plan, review-cycle, tribunal-review, whatup
+rules/     what the agent is told        CLAUDE.md, AGENTS.md — supporting, not shipped
+hooks/     mechanical interception       exit 2 blocks the tool call — supporting, not shipped
+tests/     contract tests over all of it mutation-checked — supporting, not shipped
 ```
 
 Claude Code and Codex do not read each other's skill directory, and a Claude
@@ -80,6 +82,23 @@ Two reviewers agreeing clears consensus; one alone goes to debate and rebuttal.
 > credentials, and a silently missing seat turns a "tribunal" into a solo review
 > that still reports a verdict.
 
+Debate and rebuttal call the model APIs directly instead of spawning a CLI —
+review still spawns the CLI, since that's what gives a panelist repo access.
+Measured on this machine, per-call:
+
+| transport                                 | latency | prompt floor            |
+| ----------------------------------------- | ------- | ----------------------- |
+| `codex exec` (spawn)                      | 9.7s    | 18,241 tokens           |
+| codex direct (curl)                       | ~3.0s   | 20 tokens               |
+| `claude -p` (spawn)                       | 8.0s    | large, unmeasured       |
+| claude direct (curl)                      | 1.4s    | 26 tokens               |
+| `cursor-agent -p --resume` (warm session) | 14.8s   | prior rounds not resent |
+
+Two of three calls per seat convert, so the Codex seat's token floor for a
+full run drops from ~54,700 to ~18,200. Cursor has no direct transport and
+stays the slowest seat in a round, so this buys tokens, not wall-clock — seats
+run in parallel, and a round costs what its slowest seat costs.
+
 ### `review-cycle` — six passes, fixes applied between them
 
 ```
@@ -126,6 +145,21 @@ heavy on functional detail.
 > printed **beside each claim** — a drifted agent narrates drift-free progress
 > from memory, and a grounding ritual it performs privately gets silently
 > dropped. Read-only: it names the next step, it does not take it.
+
+This skill's premise is the thesis of
+["AI Agents Push Humans Out of the Loop"](https://arxiv.org/abs/2608.23642)
+(Mitchell, Ghosh & Passi, 2026): **"current approaches to the development and
+deployment of AI agent systems do not support effective human oversight –
+they contribute to its degradation."** `whatup` is that claim taken as a
+design constraint on one skill: never let the readout be a claim without its
+evidence in the same line.
+
+The paper's **audit** mechanism — checking an agent's narrative against the
+raw log to catch where the two diverge — is now a named step: before writing
+the readout, `whatup` scans this conversation's earlier claims (a "done", a
+"passing", a plan step marked complete) against what it just verified, and a
+mismatch becomes the readout's opening line instead of a quietly corrected
+fact.
 
 ---
 

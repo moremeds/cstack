@@ -97,6 +97,21 @@ printf 200
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(out.read_text(), "ISSUE-1 real bug")
 
+    def test_a_stale_output_file_is_not_mistaken_for_this_run(self):
+        """$SP persists across runs when CLAUDE_SCRATCHPAD is set.
+
+        The fallback is guarded by [ ! -s "$out" ]. If a previous run left an
+        answer there, a failed call reads as a successful one: no fallback, no
+        error, and the seat votes with a stale opinion about a different diff.
+        """
+        self._stub("curl", 'for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done\n: > "$out"\nprintf 500\n')
+        self._stub("codex", 'for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done\necho "fresh" > "$out"\n')
+        out = pathlib.Path(self.tmp) / "codex.txt"
+        out.write_text("STALE ANSWER FROM A PREVIOUS RUN")
+        run_fn("direct_codex", self._prompt("review this"), str(out),
+               path_prefix=str(self.bin))
+        self.assertEqual(out.read_text().strip(), "fresh")
+
     def test_non_200_falls_back_to_the_cli(self):
         """A dead seat silently changes the consensus arithmetic. It must not."""
         self._stub("curl", 'for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done\n: > "$out"\nprintf 429\n')
@@ -131,6 +146,16 @@ printf 200
                    env={"CLAUDE_CODE_OAUTH_TOKEN": "stub"}, path_prefix=str(self.bin))
         self.assertEqual(out.read_text().strip(), "from the cli")
         self.assertIn("401", r.stderr)
+
+    def test_a_stale_output_file_is_not_mistaken_for_this_run(self):
+        """Same trap as the Codex seat; the guard is per-function, so test both."""
+        self._stub("curl", 'for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done\n: > "$out"\nprintf 500\n')
+        self._stub("claude", 'cat > /dev/null; echo "fresh"\n')
+        out = pathlib.Path(self.tmp) / "claude.txt"
+        out.write_text("STALE ANSWER FROM A PREVIOUS RUN")
+        run_fn("direct_claude", self._prompt("debate this"), str(out),
+               env={"CLAUDE_CODE_OAUTH_TOKEN": "stub"}, path_prefix=str(self.bin))
+        self.assertEqual(out.read_text().strip(), "fresh")
 
     def test_the_identity_line_is_present(self):
         """The OAuth path rejects a system prompt that omits it."""

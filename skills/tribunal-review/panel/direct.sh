@@ -38,6 +38,10 @@ PY
 
 direct_codex() {   # direct_codex <prompt-file> <out-file>
   local prompt="$1" out="$2" tok acct body code
+  # $SP survives between runs when CLAUDE_SCRATCHPAD is set, so a leftover
+  # answer would make [ ! -s "$out" ] accept the previous run's report as this
+  # one's and skip the fallback — a dead seat voting with a stale opinion.
+  : > "$out"
   tok=$(_codex_token) || return 1
   acct=$(_codex_account "$tok") || return 1
 
@@ -95,6 +99,7 @@ PY
 
 direct_claude() {   # direct_claude <prompt-file> <out-file>
   local prompt="$1" out="$2" body code
+  : > "$out"   # see direct_codex: never inherit a previous run's answer
 
   body=$(python3 - "$prompt" <<'PY'
 import json, sys

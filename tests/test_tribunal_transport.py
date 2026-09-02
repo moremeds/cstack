@@ -112,6 +112,50 @@ printf 200
                path_prefix=str(self.bin))
         self.assertEqual(out.read_text().strip(), "fresh")
 
+    def test_an_incomplete_stream_falls_back_instead_of_truncating(self):
+        """A truncated report is non-empty, so emptiness cannot detect it.
+
+        The stream can end in response.incomplete (max output tokens) after
+        emitting real deltas. Those deltas are a partial review: the first few
+        ISSUE blocks present, the rest simply gone. Accepting it counts the seat
+        as having reported, so the missing findings never reach the merge and
+        nobody can tell a short review from a clean one.
+        """
+        sse = (
+            'data: {"type":"response.output_text.delta","delta":"ISSUE-1 first"}\n'
+            'data: {"type":"response.incomplete"}\n'
+        )
+        self._stub("curl", f"""
+for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done
+cat > "$out" <<'SSE'
+{sse}
+SSE
+printf 200
+""")
+        self._stub("codex", 'for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done\necho "from the cli" > "$out"\n')
+        out = pathlib.Path(self.tmp) / "codex.txt"
+        r = run_fn("direct_codex", self._prompt("review this"), str(out),
+                   path_prefix=str(self.bin))
+        self.assertEqual(out.read_text().strip(), "from the cli")
+        self.assertIn("incomplete", r.stderr)
+
+    def test_a_completed_stream_is_accepted(self):
+        """The guard must not reject the normal case."""
+        sse = ('data: {"type":"response.output_text.delta","delta":"ISSUE-1 ok"}\n'
+               'data: {"type":"response.completed"}\n')
+        self._stub("curl", f"""
+for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done
+cat > "$out" <<'SSE'
+{sse}
+SSE
+printf 200
+""")
+        out = pathlib.Path(self.tmp) / "codex.txt"
+        r = run_fn("direct_codex", self._prompt("review this"), str(out),
+                   path_prefix=str(self.bin))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(out.read_text(), "ISSUE-1 ok")
+
     def test_non_200_falls_back_to_the_cli(self):
         """A dead seat silently changes the consensus arithmetic. It must not."""
         self._stub("curl", 'for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done\n: > "$out"\nprintf 429\n')
@@ -156,6 +200,22 @@ printf 200
         run_fn("direct_claude", self._prompt("debate this"), str(out),
                env={"CLAUDE_CODE_OAUTH_TOKEN": "stub"}, path_prefix=str(self.bin))
         self.assertEqual(out.read_text().strip(), "fresh")
+
+    def test_a_max_tokens_stop_reason_falls_back(self):
+        """Anthropic reports truncation in stop_reason, not in the HTTP status."""
+        self._stub("curl", """
+for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done
+cat > "$out" <<'JSON'
+{"stop_reason":"max_tokens","content":[{"type":"text","text":"ISSUE-1 first"}]}
+JSON
+printf 200
+""")
+        self._stub("claude", 'cat > /dev/null; echo "from the cli"\n')
+        out = pathlib.Path(self.tmp) / "claude.txt"
+        r = run_fn("direct_claude", self._prompt("debate this"), str(out),
+                   env={"CLAUDE_CODE_OAUTH_TOKEN": "stub"}, path_prefix=str(self.bin))
+        self.assertEqual(out.read_text().strip(), "from the cli")
+        self.assertIn("max_tokens", r.stderr)
 
     def test_the_identity_line_is_present(self):
         """The OAuth path rejects a system prompt that omits it."""

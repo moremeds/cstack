@@ -74,9 +74,12 @@ PY
     -d "$body" 2>>"$out.log") || code=000
 
   if [ "$code" = "200" ]; then
-    python3 - "$out.sse" > "$out" <<'PY'
+    # A truncated report is non-empty, so [ ! -s ] cannot detect it. Only
+    # response.completed means the whole review arrived; anything else is a
+    # partial answer that would be merged as if the seat had finished.
+    python3 - "$out.sse" > "$out" 2>>"$out.log" <<'PY'
 import json, sys
-parts = []
+parts, terminal = [], None
 for line in open(sys.argv[1]):
     if not line.startswith("data: "):
         continue
@@ -84,10 +87,16 @@ for line in open(sys.argv[1]):
         ev = json.loads(line[6:])
     except ValueError:
         continue
-    if ev.get("type") == "response.output_text.delta":
+    kind = ev.get("type", "")
+    if kind == "response.output_text.delta":
         parts.append(ev.get("delta", ""))
+    elif kind in ("response.completed", "response.incomplete", "response.failed"):
+        terminal = kind
+if terminal != "response.completed":
+    sys.exit("tribunal: codex stream ended " + (terminal or "with no terminal event"))
 sys.stdout.write("".join(parts))
 PY
+    if [ $? -ne 0 ]; then tail -1 "$out.log" >&2; : > "$out"; fi
   fi
 
   if [ ! -s "$out" ]; then
@@ -123,11 +132,16 @@ PY
     -d "$body" 2>>"$out.log") || code=000
 
   if [ "$code" = "200" ]; then
-    python3 - "$out.json" > "$out" <<'PY'
+    # stop_reason, not the HTTP status, is where truncation is reported.
+    python3 - "$out.json" > "$out" 2>>"$out.log" <<'PY'
 import json, sys
 doc = json.load(open(sys.argv[1]))
+stop = doc.get("stop_reason")
+if stop not in ("end_turn", "stop_sequence", None):
+    sys.exit("tribunal: claude stopped on " + str(stop))
 sys.stdout.write("".join(b.get("text", "") for b in doc.get("content", [])))
 PY
+    if [ $? -ne 0 ]; then tail -1 "$out.log" >&2; : > "$out"; fi
   fi
 
   if [ ! -s "$out" ]; then

@@ -1,0 +1,12 @@
+{
+  "name": "cstack",
+  "displayName": "cstack",
+  "description": "Portable review chain and status skills for Claude Code and Codex: execute-plan, review-cycle, tribunal-review, whatup, plus shared hooks and commands.",
+  "author": {
+    "name": "Chenxi LI"
+  },
+  "homepage": "https://github.com/moremeds/cstack",
+  "repository": "https://github.com/moremeds/cstack",
+  "license": "MIT",
+  "keywords": ["review", "tribunal", "plan-execution", "status", "multi-model"]
+}

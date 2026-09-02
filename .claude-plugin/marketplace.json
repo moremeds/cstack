@@ -1,0 +1,13 @@
+{
+  "name": "cstack",
+  "owner": {
+    "name": "Chenxi LI"
+  },
+  "plugins": [
+    {
+      "name": "cstack",
+      "source": ".",
+      "description": "Portable review chain and status skills for Claude Code and Codex: execute-plan, review-cycle, tribunal-review, whatup, plus shared hooks and commands."
+    }
+  ]
+}

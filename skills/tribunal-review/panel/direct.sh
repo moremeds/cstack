@@ -10,6 +10,9 @@
 # Cloudflare rejects at chatgpt.com/backend-api with a 403. See
 # references/panel-cli-notes.md.
 
+# One model selection for direct requests and CLI fallback.
+TRIBUNAL_CODEX_MODEL="${TRIBUNAL_CODEX_MODEL:-gpt-6-astra}"
+
 direct_preflight() {
   if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
     echo "tribunal: CLAUDE_CODE_OAUTH_TOKEN is unset. Export it from ~/.zshenv" >&2
@@ -37,12 +40,13 @@ PY
 }
 
 _codex_cli() {   # _codex_cli <prompt-file> <out-file> — the fallback, named once
-  codex exec -s read-only --skip-git-repo-check -o "$2" - \
+  codex exec -m "$TRIBUNAL_CODEX_MODEL" -c 'model_reasoning_effort="low"' \
+    -s read-only --skip-git-repo-check -o "$2" - \
     < "$1" >>"$2.log" 2>&1
 }
 
 direct_codex() {   # direct_codex <prompt-file> <out-file>
-  local prompt="$1" out="$2" tok acct body code
+  local prompt="$1" out="$2" tok acct body code client_version
   # $SP survives between runs when CLAUDE_SCRATCHPAD is set, so a leftover
   # answer would make [ ! -s "$out" ] accept the previous run's report as this
   # one's and skip the fallback — a dead seat voting with a stale opinion.
@@ -56,21 +60,22 @@ direct_codex() {   # direct_codex <prompt-file> <out-file>
     || { echo "tribunal: codex auth has no account id, falling back to the CLI" >&2
          _codex_cli "$prompt" "$out"; return; }
 
-  body=$(python3 - "$prompt" <<'PY'
+  body=$(python3 - "$prompt" "$TRIBUNAL_CODEX_MODEL" <<'PY'
 import json, sys
 print(json.dumps({
-    "model": "gpt-5.6-sol",
+    "model": sys.argv[2],
     "store": False,
     "stream": True,
     "instructions": "Follow the instructions in the message exactly. Output only the report.",
     "input": [{"type": "message", "role": "user",
                "content": [{"type": "input_text", "text": open(sys.argv[1]).read()}]}],
-    "reasoning": {"effort": "high"},
+    "reasoning": {"effort": "low"},
     "tool_choice": "auto",
     "parallel_tool_calls": True,
 }))
 PY
 )
+  client_version=$(codex --version 2>/dev/null | sed -n 's/^codex-cli \([0-9][0-9.]*\).*$/\1/p')
   # Headers and body go through files, never argv: ps exposes every argument
   # to any local process, and these carry the bearer token and the full diff.
   ( umask 077
@@ -82,8 +87,10 @@ header = "OpenAI-Beta: responses=experimental"
 header = "accept: text/event-stream"
 header = "content-type: application/json"
 header = "session-id: $(uuidgen)"
-header = "user-agent: codex_cli_rs/0.144.4 (Mac OS 25.5.0; arm64)"
 CFG
+    if [ -n "$client_version" ]; then
+      printf 'header = "user-agent: codex_cli_rs/%s"\n' "$client_version" >> "$out.cfg"
+    fi
     printf '%s' "$body" > "$out.req" )
 
   # --http1.1: h2 measured ~1.2s slower to first byte against this endpoint.

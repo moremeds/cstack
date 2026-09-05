@@ -66,3 +66,18 @@ outside this repository PR. The probe did not establish a performance gain.
 
 Combined AGENTS.md + four SKILL.md entrypoint size: 97,867 to 90,381 bytes
 (7.6% smaller than main). Byte size is not token usage or latency.
+
+## Direct transport follow-up
+
+The direct Codex transport now defaults to `gpt-6-astra` with `low` effort,
+with identical model/effort in CLI fallback. The model can be overridden using
+`TRIBUNAL_CODEX_MODEL`; client version comes from the installed CLI instead of
+a frozen user-agent. First-pass repository review model selection is unchanged.
+
+A real direct-only smoke request succeeded with CLI fallback disabled. The
+server returned `response.completed`, model `gpt-6-astra`, effort `low`, and the
+requested `DIRECT_ASTRA_OK` answer. Temporary credential request files were
+removed. All 83 tests passed, including direct payload and CLI fallback parameter
+checks. This establishes direct connectivity, not policy-evaluation quality or
+an end-to-end latency improvement; the earlier CLI-probe failure remains a
+historical observation about version 0.151.0.

@@ -12,7 +12,8 @@
 ## Git worktrees
 
 - **Worktrees live in `.worktrees/<branch-slug>/`** at the project root — that directory is the only canonical location. Add `.worktrees/` to the project's `.gitignore` if it isn't already. Do not create worktrees under `.claude/worktrees/`, `$HOME/projects/<repo>-worktrees/`, or anywhere else; if a skill defaults elsewhere, override it.
-- **Clean up when done.** `git worktree remove <path>` once you're finished — stale worktrees holding `main` block `git checkout main` in the primary repo.
+- **Clean up when safe.** Remove a worktree only after delivery and after checking
+  for dirty or unique work; preserve reviewable work while its PR is open.
 
 ## No fabrication
 
@@ -34,24 +35,20 @@ _Scope: this section and "Research & backtest persistence" below apply to tradin
 - **Persist all research/backtest output to durable storage — never leave it in-memory or stdout-only.** A one-off script (e.g. a `/tmp` script calling a research-layer function) that prints results and exits loses the findings the moment the process ends.
 - **If a research/analytical function doesn't already write to the DB, the caller must persist the result before the run counts as done.** Research-layer functions that return values without touching storage are expected to be wrapped by a caller that saves the output — don't treat "it ran and printed a result" as complete.
 
-## Epistemic rigor (reduce hallucination)
+## Evidence and communication
 
-**Applies to factual, analytical, and research output.** For routine coding and mechanical tasks, skip the per-claim tags and the `[RULES I BROKE]` footer unless you make a factual claim. Skill-specific tone overrides the blunt/no-praise default below where they conflict (e.g., a skill that requests warm Chinese replies) — but the rigor itself (tagging, confidence, no fabrication) still holds.
+Separate observed facts, calculations, and inference where the distinction
+matters. Give sources and material uncertainty without tagging every sentence
+or assigning uncalibrated percentages. Use concise, plain language and revise
+claims when the evidence changes. Do not add a ritual rule-compliance footer.
 
-Operate as a top expert. **Accuracy beats approval.** Be blunt and argumentative; no disclaimers, no praise. Lead with counterarguments; don't capitulate without new evidence.
-
-- **Tag every claim** with its basis: `[KNOWN]` training fact · `[COMPUTED]` calculated · `[INFERRED]` deduction · `[COMMON]` standard field knowledge · `[FRAME]` symbolic system (coherent ≠ real) · `[GUESS]` no basis. Never leave a disease, statute, citation, or named entity untagged.
-- **Frame → reality is forbidden** without a flag. Don't translate a symbolic frame (astrology, personality typologies) into a real-world claim (medicine, law, finance); the conclusion stays in the source frame.
-- **State confidence:** HIGH ≥80% · MED 50–80% · LOW 20–50% · VERY LOW <20% · UNKNOWN. `[FRAME]`-as-real-world and `[GUESS]` cap at LOW.
-- **"I don't know" goes first.** Don't bury it; don't paper over the gap with a plausible guess.
-- **Anti-sycophancy.** Red flags: unusually elegant answer; one pattern explains everything; you agreed after pushback without new evidence; specifics invoked for unearned authority. On any flag → cut the specifics, downgrade to `[GUESS]`, or say "I don't know."
-- **Post-hoc test:** would the frame have predicted this _without_ knowing the outcome? If not, mark `[INFERRED, post-hoc]` — it accommodates, it does not predict.
-- **Never fabricate citations.** Revise openly if you're defending a position only for consistency.
-- **End with** `[RULES I BROKE]:` which rule, where, why — or state that none were broken.
+User instructions take precedence over skill guidelines. If a skill blocks
+an authorized step, name its file and exact instruction. Finish independent
+work while a necessary clarification is pending.
 
 ## Working principles
 
-- **先想再写 (Think before writing):** When facing ambiguity, ask first — never assume. Clarify the requirement before touching any code.
+- **先想再写 (Think before writing):** Resolve material ambiguity before editing; infer routine details from context. Treat corrections and status questions as steering of the current task.
 - **简单优先 (Simplicity first):** Don't add features that aren't asked for. Refuse over-engineering. Three similar lines beats a premature abstraction.
 - **精准修改 (Precise edits):** Only touch what needs changing. Leave surrounding code alone no matter how messy it looks.
 - **目标驱动 (Goal-driven):** Work toward concrete success criteria (e.g., passing tests, verified browser output) — not vague instructions.
@@ -73,7 +70,7 @@ Every read, write, and reply costs tokens. Save them by reading and saying less,
 ## Session & dispatch discipline
 
 - **Never use the superpowers SDD / parallel-dispatch pattern** (`subagent-driven-development`, `dispatching-parallel-agents`: per-task implementer + reviewer agents, parallel fan-out). This overrides those skills. **Approved plans are executed with the user's own `/execute-plan` skill** (worktree → straight-through implementation → milestone commits → evidence-based verification); outside Fable orchestration mode it runs linearly in the main session.
-- **Cross-model review goes through `/tribunal-review`** (`~/.agents/skills/tribunal-review`), the portable skill both Claude and Codex orchestrate. Here Claude runs it and Codex is the peer reviewer (weight 1.0); in Codex the roles swap. Cursor/Grok (`cursor-agent`, model `cursor-grok-4.6-high`) is a weight-1.0 cross-lineage panelist available in both runtimes; Gemini is a weight-0.5 advisor and is currently unlicensed on this machine. Each is used only when it answers a liveness probe, skipped with a named reason otherwise. Pass `focus: <text>` to steer emphasis; focus raises attention and never suppresses an off-topic CRITICAL. `/review-cycle` (also portable, `~/.agents/skills/review-cycle`) calls it as its Pass 2 engine.
+- **Cross-model review goes through `/tribunal-review`** (`~/.agents/skills/tribunal-review`), the portable skill both Claude and Codex orchestrate. Here Claude runs it and Codex is the peer reviewer (weight 1.0); in Codex the roles swap. Cursor/Grok (`cursor-agent`, model `cursor-grok-4.6-high`) is a weight-1.0 cross-lineage panelist available in both runtimes; Gemini is a weight-0.5 advisor; availability is determined by the current launch. The review launch is the availability probe; skip with a named reason when it fails. Pass `focus: <text>` to steer emphasis; focus raises attention and never suppresses an off-topic CRITICAL. `/review-cycle` (also portable, `~/.agents/skills/review-cycle`) calls it as its Pass 2 engine.
 - Any delegated agent (Fable mode or research) gets a bounded scope, explicit acceptance criteria, and a turn budget (~40 turns); past budget, stop it and rescope instead of letting it grind.
 - **When context usage exceeds 35%**, finish the current step, write a handoff summary (task state, files changed, blockers, next step), then compact before continuing substantive work — trigger compaction if the harness supports it, otherwise ask the user to `/compact`.
 

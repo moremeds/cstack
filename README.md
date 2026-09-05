@@ -106,12 +106,16 @@ before continuing.
 
 ```text
 self-review → tribunal → adversarial → simplicity
-            → cumulative reread → assumptions → confidence
+            → cumulative reread → assumptions → acceptance
 ```
 
 **What you get:** the improved artifact and a complete pass ledger. A skipped
 or unavailable step remains visible; it cannot disappear while the verdict
 still says `SHIP`.
+
+Ordinary edits use self-review and relevant checks; invoke this cycle when
+requested or warranted by impact and uncertainty, including high-risk single-file changes.
+Completion follows acceptance evidence, not subjective confidence scores.
 
 The review adapts to the target. Code is checked for defects, plans against the
 repository they intend to change, and prose for false or misleading claims.
@@ -189,6 +193,16 @@ you use:
 
 Use symlinks, not copies. Both runtimes then load the same `SKILL.md`, leaving
 one source to review, test, and publish.
+
+## Astra guidance audit
+
+See [the official-guidance audit](docs/astra-guidance-audit.md) for the source
+mapping, preserved safeguards, validation, and performance limits. These are
+workflow changes, not a claim of measured model speedup.
+
+The optional auto-commit hook now commits only explicitly staged work; it never
+stages the workspace. Test-on-edit remains opt-in and is diagnostic, not acceptance
+evidence. Hook checks are best-effort helpers, not a complete security boundary.
 
 ## What else is in the repo?
 

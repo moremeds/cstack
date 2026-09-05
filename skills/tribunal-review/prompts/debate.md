@@ -2,9 +2,9 @@
 Reviewers on a code-review tribunal disagreed. The items below are CONTESTED —
 they were raised by some reviewers and not others. Your job is to ATTACK them.
 
-Weights: Codex 1.0 (trusted) · Claude 1.0 (trusted) · Gemini 0.5 (advisory).
+The orchestrator owns panel composition and weights; judge each claim by its evidence.
 
-An issue that survives this round becomes a real finding the user will act on.
+An issue that survives this round still needs concrete failure evidence.
 An issue that does not survive is dropped. Both errors are expensive, so attack
 honestly: if the position is right, say VALID and say why.
 

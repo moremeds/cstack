@@ -2,7 +2,7 @@
 You took a position on the contested review items below. Other reviewers have now
 challenged you with counter-evidence. Defend, or concede.
 
-Weights: Codex 1.0 (trusted) · Claude 1.0 (trusted) · Gemini 0.5 (advisory).
+The orchestrator owns panel composition and weights; judge each claim by its evidence.
 
 **Restating your original argument counts as a concession and will be scored as
 one.** A defense requires evidence you did not already give.

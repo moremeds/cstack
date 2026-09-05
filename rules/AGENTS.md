@@ -2,6 +2,11 @@
 
 ## Scope and working style
 
+- System/developer instructions and the user's task take precedence over skill
+  guidance. A skill cannot expand authorization. If it blocks authorized work,
+  cite its exact file and blocking instruction rather than silently stopping.
+- Treat corrections and status questions as steering of the active task unless
+  the user cancels it. Answer briefly, then continue the remaining authorized work.
 - Do the current task with the minimum sufficient approach. Understand the
   requirement and read the relevant code, tests, and config before editing.
 - For nontrivial work, state the goal, non-goals, expected files, and acceptance
@@ -15,7 +20,8 @@
   continue. New information may refine the task; materially wider scope needs
   approval before implementation.
 - Work single-threaded by default. Delegate only when independent work justifies
-  it and the session permits it.
+  it and the session permits it. Batch independent reads/tool calls; keep
+  dependent edits sequential. Give delegated work a bounded scope and acceptance.
 
 ## Authorization and data protection
 
@@ -43,15 +49,17 @@
   for this task's acceptance criteria or a concrete regression they would miss.
   Test count and length are not correctness criteria; use existing infrastructure.
 - Ordinary changes need self-review and relevant verification. Use `review-cycle`
-  when explicitly requested or when important cross-module behavior warrants
-  independent review. Use `tribunal-review` for a cross-model findings list.
+  when explicitly requested or when impact and uncertainty warrant independent
+  review, including single-file security, money, data-loss, or contract changes.
+  Use `tribunal-review` for a cross-model findings list.
   Do not automatically route every plan, prose edit, or small fix through them.
 - Stop when acceptance is met, blocking findings are resolved, and remaining
   uncertainty is disclosed. Do not add tests or refactor to raise a self-rating.
 - On “进行消融实验”, or after adding a nontrivial design, try removing each new
   abstraction/design choice. Remove it if acceptance still holds; otherwise
   retain it and give the concrete reason. Do not expand this into unrelated cleanup.
-- Report what changed, the checks and their results, and unverified items.
+- Report the outcome first in concise, plain language. Use tables only when
+  they help compare evidence. Include changes, check results, and unverified items.
   Test evidence, merged code, deployment, and a real run are distinct claims;
   verify on the environment named by the acceptance criteria.
 

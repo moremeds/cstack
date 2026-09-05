@@ -1,6 +1,6 @@
 ---
 name: tribunal-review
-description: Cross-runtime adversarial review. Whichever agent runs this skill orchestrates; the other frontier CLIs (Codex, Claude, Cursor/Grok, Gemini) review independently, findings merge by weighted consensus, contested items go through debate + rebuttal. Accepts a focus parameter to steer emphasis. Use when the user asks for a tribunal review, a cross-model second opinion, or invokes /tribunal-review. Also the tribunal engine behind /review-cycle Pass 2.
+description: Independent cross-model findings for code, plans, or prose when a tribunal/second opinion is requested, or as review-cycle Pass 2. Supports focus and quick/deep modes; reports unavailable reviewers explicitly.
 ---
 
 # Tribunal Review
@@ -8,8 +8,8 @@ description: Cross-runtime adversarial review. Whichever agent runs this skill o
 Four seats, one verdict. You are the orchestrator **and** a voting reviewer.
 
 **Why cross-runtime:** two instances of the same model share the same blind spots.
-A finding that survives independent Codex, Claude, Cursor/Grok, and Gemini seats
-is real. A finding only one raises is a hypothesis that must survive debate.
+Agreement between independent seats prioritizes a finding for verification;
+it does not prove the finding correct. A finding only one raises is a hypothesis that must survive debate.
 
 ## Step 0 — Identify yourself and build the panel
 
@@ -46,7 +46,7 @@ the weights are applied at merge time anyway.
 | --------------- | ------------------------------------------------------------------------- |
 | peer + Cursor + Gemini | full tribunal (4-way weighted)                                     |
 | any two of the three   | weighted panel at whatever weights answered                        |
-| exactly one            | bilateral (you + it); if it is Gemini alone, promote it to 1.0      |
+| exactly one            | bilateral (you + it); keep the declared seat weights      |
 | none                   | solo review — say so loudly in the output header, do not silently pretend |
 
 **No panelist is required.** An absence changes the weights, never the output shape,
@@ -438,15 +438,6 @@ ways = one issue citing both. Severity disagreement = take the highest, note it.
 Three seats carry **1.0**: you, your peer, and Cursor/Grok. Only Gemini is
 discounted, because it is an advisor that does not run inside the repository.
 
-Cursor/Grok held 0.90 until 2026-09-02 on the theory that its rounds share one
-conversation, so it would defend its review position rather than re-derive it.
-The first run that actually measured this found the opposite: asked to debate a
-finding it had raised itself, it re-derived the question and ruled its own
-finding INVALID. Session memory is real — confirmed on a third turn, told to
-answer without tools, it recalled its finding count and quoted its own title
-verbatim — but the bias that memory was supposed to cause did not appear. A
-discount with no evidence behind it is just a number, so the seat is a peer.
-
 **None of these weights are calibrated.** They encode lineage independence, not
 measured accuracy: three seats that reason from different training runs, and one
 that only advises. The honest way to change them is a hit-rate — findings that
@@ -457,14 +448,16 @@ Confidence filter, applied **after** dedup and **before** debate:
 - any reporter scored ≥70 → keep, use the highest score
 - all reporters <70 → auto-dismiss into the Low Confidence list
 - weight **≥2.0** bypasses this filter — agreement between two full-weight
-  reviewers is itself the evidence. One full-weight + Gemini (1.5) does not bypass.
+  reviewers prioritizes verification, but never replaces failure evidence. One full-weight + Gemini (1.5) does not bypass.
 
 Weight measures trust in the reviewer; confidence measures certainty about the
 issue. They are independent. A Gemini-only issue at confidence 95 still goes to
 debate; a unanimous issue at confidence 40 skips the filter.
 
 **Verify before you promote anything to consensus.** Open the file and read the
-cited lines. Models hallucinate paths and line numbers. An issue whose cited code
+cited lines and check the claimed failure against control flow, a concrete input,
+or a relevant reproduction. Model agreement and confidence scores alone are not
+evidence of a defect. Models hallucinate paths and line numbers. An issue whose cited code
 does not exist is dismissed as HALLUCINATED, no debate.
 
 Two more triage rules, both from measured failure modes:

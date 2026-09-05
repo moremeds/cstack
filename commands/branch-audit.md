@@ -16,13 +16,13 @@ You repeatedly ask "scan the local branches and commits, see if anything is miss
 
 ## Workflow
 
-Use TaskCreate/TaskUpdate to track each gathering step so partial results survive interruptions.
+Use an available tracker only when useful; missing tracking tools do not block the audit.
 
 ### Step 1 — Gather raw state
 
-Run in parallel:
+Refresh remote refs with `git fetch` first; report a failure or stale refs.
+Then gather these independent reads in parallel:
 
-- `git fetch --prune` — refresh remote refs and drop dead remote branches locally.
 - `git branch -vv` — local branches with upstream tracking.
 - `git worktree list` — every checked-out worktree.
 - `git for-each-ref --sort=-committerdate --format='%(refname:short)|%(committerdate:iso8601)|%(authorname)' refs/heads/` — last commit per local branch.
@@ -55,7 +55,8 @@ Use this decision table:
 | No | No | — | — | **Has unique work** — list the commits, ask user before any cleanup |
 
 For worktrees, additionally check:
-- Is the worktree on a branch that's already deleted upstream? → safe to remove worktree.
+- A deleted upstream branch does not prove local work is merged. Verify local
+  commits and dirty state before recommending worktree removal.
 - Does the worktree have uncommitted changes? → never recommend deletion; flag for user review.
 
 ### Step 4 — Render the report
@@ -86,7 +87,7 @@ Local branches: N | Worktrees: M | Open PRs: K
 
 ### Anomalies
 - e.g. "worktree at X points to deleted branch Y"
-- e.g. "branch Z has no upstream, never pushed"
+- e.g. "branch Z has no upstream configured; remote push state unverified"
 ```
 
 ### Step 5 — Offer cleanup
@@ -99,7 +100,7 @@ When the user confirms specific deletions, execute them branch-by-branch and rep
 
 ## Stopping condition
 
-- Report rendered, user has decided what (if anything) to clean up.
+- Report rendered. Cleanup is separate and does not keep a read-only audit open.
 - Or: user signals stop.
 
 ## Guardrails

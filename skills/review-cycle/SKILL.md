@@ -1,14 +1,14 @@
 ---
 name: review-cycle
-description: Multi-pass review discipline with per-pass apply — self-review → tribunal-review cross-model tribunal → adversarial → simplicity/ponytail → final self-review → assumption verification → acceptance verification. Adapts its passes to code, plans, or prose. Each pass applies its own fixes and re-verifies before the next pass starts. Use when explicitly requested or when important cross-module behavior warrants independent review; ordinary edits need self-review and relevant checks.
+description: Review, fix, and verify code, plans, or prose when requested or warranted by risk, including single-file security, money, data-loss, or contract changes. Uses an independent tribunal; ordinary low-risk edits need self-review and relevant checks.
 ---
 
 ## Runtime
 
 Portable — runs under Claude Code and Codex both. Runtime-specific tracking is
 routed by capability below; Pass 2's `tribunal-review` call is otherwise the
-same. If `tribunal-review` is not installed, say so and stop — do not substitute
-your own review and report it as a tribunal pass.
+same. If `tribunal-review` is unavailable, finish useful local checks and report the
+independent review gate as unverified. Never label a solo review as independent.
 
 ## Purpose
 
@@ -63,8 +63,8 @@ When invoked from a parent tracker (for example `execute-plan`), reuse the
 parent tracker instead of replacing it. Keep the parent review gate as the
 container, preserve its other milestones, and make only the current review pass
 the one `in_progress` item. Mark skipped quick-mode passes explicitly rather
-than silently deleting them. Stop early **only** if a gate fails and the user
-opts to abort.
+than silently deleting them. If a gate fails, fix it within scope or report the concrete blocker; do not
+wait for permission to stop a genuinely blocked review.
 
 **Why per-pass apply matters:** the tribunal and the adversarial pass are most valuable on a *clean* artifact. Batching all fixes into one big apply step at the end means they waste cycles on bugs you already caught. Apply between passes → each later pass sees less noise and finds deeper issues.
 
@@ -94,9 +94,11 @@ RC_FIX_BASE=$(git rev-parse HEAD)      # separate pre-review fix baseline
 git diff "$RC_BASE" > "$RC_SP/after-1.diff"   # …and after each pass's apply step
 ```
 
-- **Read any file in full at most once per cycle.** After that, later passes read
-  `git diff "$RC_FIX_BASE"` for review fixes, and re-open a file only when a finding cites a line the
-  diff does not show.
+- **Reuse context without shrinking review scope.** Later passes read
+  the full task diff with `git diff "$RC_BASE"` for defect and adversarial review.
+  `git diff "$RC_FIX_BASE"` is only an aid for inspecting review fixes; it never
+  replaces the original task scope. Reopen surrounding code when needed to test
+  a hypothesis, even if no finding has yet been written.
 - **Pass 3b** scopes to what Passes 2–3 added: `diff -u "$RC_SP/after-1.diff"
   "$RC_SP/after-3.diff"`, not a fresh read of the touched files.
 - **Pass 4** still re-reads the **whole** cumulative diff — that guarantee is not
@@ -116,7 +118,7 @@ Don't hardcode a stack. Discover gates from the repo itself, every time:
 - **plan**: no runtime gates. Check internal consistency (does step 4 depend on something step 7 introduces?) and consistency against the named design doc or linked spec.
 - **prose**: no runtime gates. Check factual claims against cited/available sources and internal consistency across sections/chapters.
 
-Record exact commands and pass/fail in your task notes after every pass. If a gate fails, fix forward before starting the next pass.
+Record commands and pass/fail after changed code is verified; otherwise cite the still-applicable evidence. If a gate fails, fix forward before starting the next pass.
 
 ### Pass 1 — Self-review against the spec → apply → verify
 
@@ -212,7 +214,7 @@ Runs after the tribunal's findings have been applied, not alongside it.
 
    | Type | Adversarial framing |
    |------|---------------------|
-   | code | "How would I break this in production?" Try at minimum: concurrent writes, empty/null inputs, malformed user input, provider outage, partial migration state, retries on non-idempotent ops, races between scheduled jobs, secrets leaking into subprocess envs. |
+   | code | "How would I break this in production?" Choose concrete failure scenarios relevant to this change (such as authorization, concurrency, malformed input, provider failure, or retry safety). Skip unrelated scenarios. |
    | plan | "Which step fails during execution, and where would two engineers implement this differently because it's underspecified?" |
    | prose | "What would a domain expert dispute? Which claims have no support, and which would a critical reader flag as wrong or overstated?" |
 
@@ -280,7 +282,10 @@ So every row below ships in every report, and a pass that did not run says so in
 its own row. "Skipped (quick mode)" and "not applicable — plan target, no
 runtime gates" are complete answers. Silence is not.
 
-**SHIP requires a complete ledger.** Pass 5 and the standing-rule check must run
+**SHIP requires a complete ledger.** Required independent review must have an
+answered independent peer; a solo result cannot satisfy that gate. An unavailable
+optional advisor does not block a panel that meets the requested independence.
+Pass 5 and the standing-rule check must run
 in every mode. Pass 6 must run in full mode; in quick mode, `skipped (quick mode)`
 is complete evidence and does not cap `SHIP`. Any other missing required row caps
 the best available verdict at FIX-FIRST — not because something is broken, but
@@ -336,7 +341,8 @@ because you do not know that nothing is.
 
 ## Guardrails
 
-- **Never commit, push, or open a PR from inside this skill.** Hand off to `/ship` or wait for explicit user instruction.
+- **Do not commit or deliver as part of review alone.** Return to the invoking
+  execution workflow when one exists; standalone review does not imply delivery.
 - **Never skip the tribunal pass.** Not even when Pass 1 looked clean, and not in `quick` mode either — `quick` makes the tribunal cheaper (no debate, no rebuttal), it does not remove it. It must run against the *cleaned* post-Pass-1 artifact to be worth the spend.
 - **Never drive the external CLIs yourself.** No `codex exec`, no `gemini -p`, no `claude -p` from this skill — call `tribunal-review` and let it own them. In particular never poll a reviewer's output file in a `sleep`/`until` loop, never check availability with `which` or `command -v` (an installed binary can still be unlicensed or logged out — the skill probes for a live reply instead), and never `pkill -f "codex exec"`, which kills every unrelated Codex job on the machine. All three were real failure modes in this cycle's own logged history.
 - **Never declare done with unverified assumptions** — surface them in the final report instead.

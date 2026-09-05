@@ -19,7 +19,10 @@ fi
 
 [[ -z "$command_text" ]] && exit 0
 [[ "$command_text" != *"gh pr merge"* ]] && exit 0
-command -v gh >/dev/null 2>&1 || exit 0
+command -v gh >/dev/null 2>&1 || {
+  echo "BLOCKED by ci-green-before-merge: gh is unavailable." >&2
+  exit 2
+}
 
 # Extract an explicit PR number/URL argument if one was given. Flags may
 # precede it (`gh pr merge --squash 123`), so scan every token after `merge`;
@@ -40,17 +43,20 @@ done
 [[ -n "$cwd" && -d "$cwd" ]] && cd "$cwd" 2>/dev/null
 
 # JSON is deterministic — no parsing of human-readable check tables.
-rollup="$(gh pr view ${pr_arg:+"$pr_arg"} --json statusCheckRollup -q '.statusCheckRollup' 2>&1)" || exit 0
+rollup="$(gh pr view ${pr_arg:+"$pr_arg"} --json statusCheckRollup -q '.statusCheckRollup' 2>&1)" || {
+  echo "BLOCKED by ci-green-before-merge: CI status unavailable; verify before merging." >&2
+  exit 2
+}
 
 # No checks configured → nothing to wait for; allow.
-[[ -z "$rollup" || "$rollup" == "[]" || "$rollup" == "null" ]] && exit 0
+[[ "$rollup" == "[]" ]] && exit 0
 
 not_green="$(printf '%s' "$rollup" | jq -r '[.[] | select((.status // "COMPLETED") != "COMPLETED" or ((.conclusion // .state // "") | ascii_upcase | IN("SUCCESS","NEUTRAL","SKIPPED") | not))] | length' 2>/dev/null)"
 
 if [[ -z "$not_green" ]]; then
-  # jq parse failure — fail open but say so.
-  echo "ci-green-before-merge: could not parse check rollup; not blocking."
-  exit 0
+  # Unknown state is not a verified green result.
+  echo "BLOCKED by ci-green-before-merge: could not parse check rollup." >&2
+  exit 2
 fi
 
 if [[ "$not_green" != "0" ]]; then

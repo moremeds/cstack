@@ -1,6 +1,6 @@
 ---
 name: whatup
-description: Plain-language status readout — what this work is for, what is happening right now, what actually got done, what failed, what breaks if we stop here, and what decision is waiting on you. Every claim carries the evidence it came from, or is marked unverified. Use when the user asks "status", "什么状态", "说人话现在是什么状态", "现在在做什么/什么还没做", or says the work feels out of control / off track.
+description: Read-only evidence-based status when asked what is done, blocked, unverified, or off track (status / 什么状态). Check prior claims against current artifacts; do not execute the next step.
 ---
 
 ## Runtime
@@ -31,7 +31,7 @@ section list is just packaging.
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `PR 92` / `#92`                       | that PR: `gh pr view 92 …` plus its branch                                                              |
 | a path                                | that path's history, its dirty state, and the artifact it produces                                      |
-| a phrase (`the gap autoheal feature`) | the plan/branch of that name; if you cannot map it to one, say so and report the current branch instead |
+| a phrase (`the gap autoheal feature`) | the matching plan/branch; if unresolved, report that boundary and ask only for the missing identifier |
 
 Answer in the language of the **conversation**, not of the invocation token —
 `/whatup` typed in a Chinese session gets a Chinese answer.

@@ -5,6 +5,8 @@ contract it protects has been broken. An assertion that passes either way is
 worse than no test — it certifies nothing while reading as coverage.
 """
 
+import json
+import os
 import re
 import subprocess
 import sys
@@ -520,6 +522,8 @@ class TestContextDiscipline(unittest.TestCase):
         body = CYCLE.read_text()
         ctx = body[body.index("### Context discipline"):body.index("### Verification gates")]
         self.assertIn("RC_BASE", ctx, "no pinned base, so later passes re-read whole files")
+        self.assertIn('full task diff with `git diff "$RC_BASE"`', ctx)
+        self.assertIn("never\n  replaces the original task scope", ctx)
         self.assertRegex(ctx, r"(?is)Pass 4.*whole.*cumulative diff",
                          "the context rules let Pass 4 review a slice instead of the whole diff")
         pass4 = body[body.index("### Pass 4"):body.index("### Pass 5")]
@@ -587,6 +591,45 @@ class TestNonBlockingWait(unittest.TestCase):
         gap = self.launch[self.launch.index("Spend the gap"):]
         for item in ("own full review", "Ground", "gates"):
             self.assertIn(item, gap, f"gap protocol does not cover {item!r}")
+
+
+
+class TestWorkflowHooks(unittest.TestCase):
+    def test_auto_commit_preserves_unstaged_and_untracked_work(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            def git(*args):
+                return subprocess.check_output(["git", *args], cwd=tmp, text=True).strip()
+            git("init", "-q")
+            git("config", "user.email", "test@localhost")
+            git("config", "user.name", "Test")
+            selected = Path(tmp) / "selected.txt"
+            selected.write_text("staged\n")
+            git("add", "selected.txt")
+            selected.write_text("staged\nunstaged\n")
+            (Path(tmp) / "unrelated.txt").write_text("preserve\n")
+            (Path(tmp) / ".claude").mkdir()
+            (Path(tmp) / ".claude/auto-commit").touch()
+            subprocess.run(["bash", str(ROOT / "hooks/auto-commit.sh")], cwd=tmp,
+                           env={**os.environ, "CLAUDE_PROJECT_DIR": tmp}, check=True)
+            self.assertEqual(git("show", "HEAD:selected.txt"), "staged")
+            self.assertIn("+unstaged", git("diff"))
+            self.assertIn("?? unrelated.txt", git("status", "--short"))
+
+    def test_ci_query_failure_blocks_but_empty_check_list_is_allowed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            stub = Path(tmp) / "gh"
+            stub.write_text('#!/bin/sh\nexit 1\n')
+            stub.chmod(0o755)
+            def run():
+                return subprocess.run(["bash", str(ROOT / "hooks/ci-green-before-merge.sh")],
+                    input=json.dumps({"cwd": tmp, "tool_input": {"command": "gh pr merge 16"}}),
+                    text=True, capture_output=True,
+                    env={**os.environ, "PATH": tmp + os.pathsep + os.environ["PATH"]})
+            result = run()
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("CI status unavailable", result.stderr)
+            stub.write_text('#!/bin/sh\nprintf "[]"\n')
+            self.assertEqual(run().returncode, 0)
 
 
 if __name__ == "__main__":

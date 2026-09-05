@@ -6,6 +6,8 @@ status reports, so a grounding block that can itself produce one is the one
 defect that makes the whole skill lie confidently.
 """
 
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -49,6 +51,45 @@ class TestWhatupGroundingCannotReportFalseClean(unittest.TestCase):
             self.assertNotIn("origin/HEAD..", line,
                              f"that range means 'not in the default branch', "
                              f"not 'not pushed': {line.strip()}")
+
+
+    def test_pushed_without_tracking_retains_task_scope(self):
+        self.assertIn("No upstream does not mean never pushed", self.step1)
+        self.assertNotIn("never left the machine", self.step1)
+        diff_command = next(line.split("#", 1)[0].strip()
+                            for line in self.commands.splitlines()
+                            if line.startswith("git diff --stat"))
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "work"
+            repo.mkdir()
+            def git(*args):
+                return subprocess.check_output(["git", *args], cwd=repo,
+                                               stderr=subprocess.PIPE, text=True).strip()
+            git("init", "--bare", "-q", str(Path(tmp) / "remote.git"))
+            git("init", "-q")
+            git("config", "user.email", "test@localhost")
+            git("config", "user.name", "Test")
+            target = repo / "target.txt"
+            target.write_text("base\n")
+            git("add", "target.txt")
+            git("commit", "-qm", "base")
+            base = git("rev-parse", "HEAD")
+            target.write_text("base\ntask\n")
+            git("commit", "-qam", "task")
+            git("remote", "add", "origin", str(Path(tmp) / "remote.git"))
+            git("push", "origin", "HEAD:refs/heads/task")
+            with self.assertRaises(subprocess.CalledProcessError):
+                git("rev-parse", "--abbrev-ref", "@{upstream}")
+            self.assertEqual(git("rev-parse", "HEAD"),
+                             git("ls-remote", "origin", "refs/heads/task").split()[0])
+            for tracked in (False, True):
+                if tracked:
+                    git("branch", "--set-upstream-to=origin/task")
+                    self.assertEqual(git("diff", "--stat", "@{upstream}...HEAD"), "")
+                output = subprocess.check_output(
+                    ["sh", "-eu", "-c", f'TASK_BASE={base}\n{diff_command}'],
+                    cwd=repo, text=True)
+                self.assertIn("target.txt", output)
 
 
 class TestWhatupIsPortable(unittest.TestCase):

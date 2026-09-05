@@ -158,6 +158,12 @@ class TestFullCycleIsPortable(unittest.TestCase):
         self.assertIn("tribunal-review --base", post,
                       "there is no exact-range fallback when review-cycle cannot target EXEC_BASE")
 
+    def test_plain_execution_reaches_remote_delivery(self):
+        body = EXECUTE.read_text()
+        summary = body[body.index("6. **Final summary"):body.index("### Which reviewer")]
+        self.assertIn("skip Step 7 and continue to Step 8", summary)
+        self.assertNotIn("end here", summary)
+
     def test_exact_range_fallback_reviews_a_clean_committed_tree(self):
         """tribunal-review's base payload does not enumerate staged or untracked files."""
         body = EXECUTE.read_text()
@@ -230,8 +236,8 @@ class TestReviewCycleIsPortable(unittest.TestCase):
                           f"quick mode must not falsely report that {pass_name} ran")
 
         stopping = body[body.index("## Stopping condition"):body.index("## Guardrails")]
-        self.assertRegex(stopping, r"(?is)full mode.*min\(confidence\).*quick mode.*Pass 6",
-                         "the stopping rule still demands confidence ratings in quick mode")
+        self.assertRegex(stopping, r"(?is)full mode.*acceptance criteria.*no unresolved blocking.*quick mode.*Pass 6",
+                         "both modes must close acceptance without a confidence score")
 
         critique = body[body.index("| Type | Critique sections |"):body.index("If a focus was given")]
         for artifact_type in ("code", "plan", "prose"):
@@ -521,6 +527,37 @@ class TestContextDiscipline(unittest.TestCase):
                          "Pass 4 no longer re-reads the cumulative diff")
         self.assertRegex(pass4, r"(?is)not any single pass",
                          "Pass 4 may now settle for one pass's slice")
+
+
+    def test_documented_base_keeps_committed_changes_and_review_fixes(self):
+        body = CYCLE.read_text()
+        ctx = body[body.index("### Context discipline"):body.index("### Verification gates")]
+        assignments = "\n".join(line for line in ctx.splitlines()
+                                if line.startswith(("RC_BASE=", "RC_FIX_BASE=")))
+        with tempfile.TemporaryDirectory() as tmp:
+            def git(*args):
+                return subprocess.check_output(["git", *args], cwd=tmp, text=True).strip()
+            git("init", "-q")
+            git("config", "user.email", "test@localhost")
+            git("config", "user.name", "Test")
+            target = Path(tmp) / "target.txt"
+            target.write_text("base\n")
+            git("add", "target.txt")
+            git("commit", "-qm", "base")
+            base = git("rev-parse", "HEAD")
+            target.write_text("base\ncommitted change\n")
+            git("commit", "-qam", "task")
+            head = git("rev-parse", "HEAD")
+            command = f'RC_TARGET_BASE={base}\n{assignments}\nprintf "%s\n%s" "$RC_BASE" "$RC_FIX_BASE"'
+            review_base, fix_base = subprocess.check_output(
+                ["sh", "-eu", "-c", command], cwd=tmp, text=True).splitlines()
+            self.assertEqual(fix_base, head)
+            self.assertIn("+committed change", git("diff", review_base))
+            target.write_text("base\ncommitted change\nreview fix\n")
+            diff = git("diff", review_base)
+            self.assertIn("+committed change", diff)
+            self.assertIn("+review fix", diff)
+            self.assertNotIn("+committed change", git("diff", fix_base))
 
 
 class TestNonBlockingWait(unittest.TestCase):

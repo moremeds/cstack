@@ -106,12 +106,16 @@ before continuing.
 
 ```text
 self-review → tribunal → adversarial → simplicity
-            → cumulative reread → assumptions → confidence
+            → cumulative reread → assumptions → acceptance
 ```
 
 **What you get:** the improved artifact and a complete pass ledger. A skipped
 or unavailable step remains visible; it cannot disappear while the verdict
 still says `SHIP`.
+
+Ordinary edits use self-review and relevant checks; invoke this cycle when
+requested or when important cross-module behavior warrants independent review.
+Completion follows acceptance evidence, not subjective confidence scores.
 
 The review adapts to the target. Code is checked for defects, plans against the
 repository they intend to change, and prose for false or misleading claims.

@@ -77,7 +77,7 @@ the tracker above; it is not a reason to improvise or skip the review.
    - Does each "verified" claim have a concrete artifact backing it?
    - Are any claims based on inference (e.g., "the build passed so the change is correct")?
    - Are there assertions in the plan that _don't_ yet have evidence? Surface them.
-   - Adversarial edge-case pass: before writing the table, probe the cases the plan's tests don't cover — empty inputs, duplicate/overlapping inputs, unknown enum values, zero denominators. "Tests green + 100% coverage" alone is not verification; missing tests pass trivially.
+   - Before writing the table, verify any concrete acceptance or regression risk not covered by the collected evidence; do not add a generic edge-case checklist. "Tests green + 100% coverage" alone is not verification; missing tests pass trivially.
 
 6. **Final summary table.** Present a table the user can scan:
 
@@ -91,7 +91,7 @@ the tracker above; it is not a reason to improvise or skip the review.
 
    The table must reflect the run's **actual** end: if more milestones land after a table was issued, reissue the full table before ending the run. Also refresh it right before any pause or context compaction — a table that covers only the first half of the work is the most common historical failure.
 
-   If `--full-cycle` was **not** passed, end here with one declarative line: `Next step (not run): <reviewer> on this diff`, plus any plan-defined e2e check. State it; never phrase it as a question and never run it.
+   If `--full-cycle` was **not** passed, skip Step 7 and continue to Step 8. After delivery, issue the final table including the PR URL and state `Cross-model review: not run`. Plan-defined acceptance checks still run in Step 3; do not add an unrequested review gate.
 
 ### Which reviewer
 

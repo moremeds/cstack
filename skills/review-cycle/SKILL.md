@@ -1,6 +1,6 @@
 ---
 name: review-cycle
-description: Multi-pass review discipline with per-pass apply — self-review → tribunal-review cross-model tribunal → adversarial → simplicity/ponytail → final self-review → assumption verification → confidence calibration. Adapts its passes to code, plans, or prose. Each pass applies its own fixes and re-verifies before the next pass starts. Use after writing a plan, finishing prose, or completing an implementation.
+description: Multi-pass review discipline with per-pass apply — self-review → tribunal-review cross-model tribunal → adversarial → simplicity/ponytail → final self-review → assumption verification → acceptance verification. Adapts its passes to code, plans, or prose. Each pass applies its own fixes and re-verifies before the next pass starts. Use when explicitly requested or when important cross-module behavior warrants independent review; ordinary edits need self-review and relevant checks.
 ---
 
 ## Runtime
@@ -20,7 +20,7 @@ Claude Code: `/review-cycle [quick] [target] [focus text...]`
 
 Codex: `$review-cycle [quick] [target] [focus text...]`
 
-- `quick` (optional, first token) → abbreviated cycle: Pass 1 + a single non-debated tribunal pass (passed through to `tribunal-review` as its own `quick` modifier) + Pass 5 assumption check. Skips Pass 3 (adversarial), Pass 3b (simplicity), Pass 4, and the Pass 6 confidence loop; Pass 1's standing-rule check is still required. Use for small diffs, doc touch-ups, or anything where six passes is ceremony. Omit for the full cycle (default).
+- `quick` (optional, first token) → abbreviated cycle: Pass 1 + a single non-debated tribunal pass (passed through to `tribunal-review` as its own `quick` modifier) + Pass 5 assumption check. Skips Pass 3 (adversarial), Pass 3b (simplicity), Pass 4, and the Pass 6 acceptance check; Pass 1's standing-rule check is still required. Use when an independent review is warranted but the additional full-cycle passes are not. Omit for the full cycle (default).
 - `target` (optional):
   - No arg → review the **current branch's diff vs the repo's default base branch**.
   - A path → review **that plan/spec/doc/prose file** for adequacy before implementation or publication.
@@ -82,19 +82,26 @@ Six passes over one artifact is six chances to re-read the same bytes, and every
 byte pulled in is re-read as cache on every later call in the cycle. What each
 pass looks at is unchanged; only how it fetches it.
 
+For a code target, resolve `RC_TARGET_BASE` to the PR target/default branch's
+merge-base with HEAD, or the explicitly supplied review base, before this block.
+Do not substitute HEAD when base resolution fails: disclose the missing scope.
+For a plan/prose target, reread the final artifact instead of using a Git range.
+
 ```bash
 RC_SP="${CLAUDE_SCRATCHPAD:-$(mktemp -d)}/review-cycle"; mkdir -p "$RC_SP"
-RC_BASE=$(git rev-parse HEAD)          # pin once, before Pass 1
+RC_BASE=$(git rev-parse "$RC_TARGET_BASE") # pin the target review base once
+RC_FIX_BASE=$(git rev-parse HEAD)      # separate pre-review fix baseline
 git diff "$RC_BASE" > "$RC_SP/after-1.diff"   # …and after each pass's apply step
 ```
 
 - **Read any file in full at most once per cycle.** After that, later passes read
-  `git diff "$RC_BASE"`, and re-open a file only when a finding cites a line the
+  `git diff "$RC_FIX_BASE"` for review fixes, and re-open a file only when a finding cites a line the
   diff does not show.
 - **Pass 3b** scopes to what Passes 2–3 added: `diff -u "$RC_SP/after-1.diff"
   "$RC_SP/after-3.diff"`, not a fresh read of the touched files.
 - **Pass 4** still re-reads the **whole** cumulative diff — that guarantee is not
   negotiable — but as one `git diff "$RC_BASE"`, not by reopening each file.
+- Include in-scope untracked files separately: `git diff` does not include them.
 - **Panel output stays in files.** `tribunal-review` hands you extracted findings;
   do not pull its reviewers' raw transcripts into this cycle's context.
 - **Never paste the artifact into your reply.** The report cites `file:line` and
@@ -105,7 +112,7 @@ git diff "$RC_BASE" > "$RC_SP/after-1.diff"   # …and after each pass's apply s
 Don't hardcode a stack. Discover gates from the repo itself, every time:
 
 - Read the target repo's `CLAUDE.md`/`AGENTS.md` for its own build/test/lint commands and any standing rules (banned patterns, required tools, forbidden data sources) — those are project-specific and override anything generic here.
-- **code**: look for `pyproject.toml` (test runner + whether bare `python`/`pytest` is banned), `package.json` (`npm run typecheck`/`test`/`gen:types` scripts), a migrations directory (replay script), an OpenAPI/contract file (regen + diff check). Run whatever actually exists; don't invent commands the repo doesn't have.
+- **code**: look for `pyproject.toml` (test runner + whether bare `python`/`pytest` is banned), `package.json` (`npm run typecheck`/`test`/`gen:types` scripts), a migrations directory (replay script), an OpenAPI/contract file (regen + diff check). Run the narrowest relevant existing checks; do not run every discovered command. Reuse passing evidence when neither the checked code nor its dependencies changed.
 - **plan**: no runtime gates. Check internal consistency (does step 4 depend on something step 7 introduces?) and consistency against the named design doc or linked spec.
 - **prose**: no runtime gates. Check factual claims against cited/available sources and internal consistency across sections/chapters.
 
@@ -253,44 +260,21 @@ Before declaring done, write out each assumption you've been carrying and the ev
 - "UI feature works" → opened in browser (or explicit "I cannot test UI" disclosure)
 - "Chapter's claim is accurate" → checked against the cited source ✅
 
-If any assumption is unverified, either verify it or surface it explicitly in the final report. Never paper over a gap. `quick` mode ends here.
+If any assumption is unverified, either verify it or surface it explicitly in the final report. In quick mode, also check acceptance criteria here: an unmet criterion blocks SHIP even when disclosed. Record the acceptance evidence in both modes. `quick` mode ends here.
 
-### Pass 6 — Confidence calibration (the loop)
+### Pass 6 — Acceptance closure
 
-The intent: stop only when the **weakest link** is strong, not when the average looks fine.
-
-1. **Enumerate components** — the natural units of the artifact type:
-   - code → each touched module, migration, API contract, UI surface, and test file
-   - plan → each requirement / step / milestone
-   - prose → each chapter / section / major claim
-2. **Rate each 0–10** with a one-line justification grounded in evidence from Passes 1–5 (not vibes). Examples:
-   - `storage/trade_insights_ai.py` — **9/10** — covered by new unit tests + integration test hit it green
-   - `worker claim-loop concurrency` — **5/10** — no test exercises two workers racing on the same row; relied on advisory lock by inspection only
-   - `chapter 4, claim about X` — **6/10** — matches one source, couldn't cross-check a second
-3. **Pick the lowest-rated component.** Patch it. A patch is one of:
-   - Re-spec / tighten language (for plans/specs)
-   - Add a targeted test that exercises the doubt (code)
-   - Run a verification command and record the output (code)
-   - Inspect the runtime path, or find a second corroborating source (prose)
-   - Refactor away the fragility
-4. **Re-rate** after the patch. If the lowest is now ≥ 8, move to the next-lowest; loop until `min(rating) ≥ 8`.
-5. **Bail condition.** If a component cannot be pushed to ≥ 8 in this cycle (e.g. needs prod data, requires user decision, depends on external service or unreachable source), stop the loop and surface it explicitly in **What I did NOT verify** with the residual rating and the reason.
-6. **Record final per-component ratings** in the report.
-
-Guardrails for this pass:
-- **Anchor on evidence, not optimism.** A "9/10" with no verifying action behind it is a 5.
-- **Patching ≠ rewriting.** Each round targets the single weakest link; resist scope creep into adjacent components.
-- **One loop, not infinite.** If you've made 3 patch rounds on the same component without crossing 8, that's the bail condition firing — disclose it.
+Check the requested acceptance criteria against evidence from Passes 1–5.
+Resolve concrete blocking findings within scope; do not refactor or add tests
+merely to increase a subjective confidence score. If an acceptance check cannot
+run, name the missing evidence and keep the affected criterion unverified.
+Disclose non-blocking uncertainty separately from unmet acceptance criteria.
+Do not repeat successful checks without a relevant change or new concern.
 
 ## Final report format
 
-**The ledger is not optional and no row may be deleted.** Measured across the 12
-logged runs of this cycle: the verdict line was reported 12/12 times, but the
-assumption check behind it appeared in only 6, a `min:` confidence rating in 8,
-and the standing-rule check in 9. Nothing failed — the weaker runs simply
-omitted the section and the verdict came out looking identical to a run that had
-done the work. A verdict is a claim about evidence; a report that can drop the
-evidence and keep the claim is the exact failure this cycle exists to prevent.
+**The ledger records the work actually performed.** A verdict must retain its
+supporting evidence and disclose missing checks.
 
 So every row below ships in every report, and a pass that did not run says so in
 its own row. "Skipped (quick mode)" and "not applicable — plan target, no
@@ -316,7 +300,7 @@ because you do not know that nothing is.
 | 3b simplicity | yes / skipped (quick) | what was cut, or "nothing to cut" |
 | 4 cumulative re-read | yes / skipped (quick) | — |
 | 5 assumptions | yes | N verified, M disclosed |
-| 6 confidence | yes / skipped (quick) | min N/10 |
+| 6 acceptance | yes / skipped (quick) | criteria met / blocking gaps |
 | standing rules | yes / none found in repo | which file they came from |
 
 ### Findings applied (by pass)
@@ -335,19 +319,17 @@ because you do not know that nothing is.
 ### Assumptions verified
 - ...
 
-### Confidence (final ratings)
-- <component> — **N/10** — <one-line justification> (full) / skipped (quick mode) — Pass 6 did not run
-- ...
-- **min:** N/10 — <which component> (full) / not rated — skipped (quick mode)
+### Acceptance evidence
+- <criterion> — <evidence or blocking gap> (both modes)
 
 ### What I did NOT verify
-- ... (include any component that finished below the 8/10 threshold, with the reason)
+- ... (name missing checks, their impact, and whether they block acceptance)
 ```
 
 ## Stopping condition
 
-- In full mode, all standing rules found in the repo pass, all verification commands are green, all assumptions are verified or disclosed, and **`min(confidence) ≥ 8` or every sub-8 component is disclosed in "What I did NOT verify"**.
-- In quick mode, the same standing-rule, verification, and assumption gates pass; Pass 6 is recorded as `skipped (quick mode)` and no confidence minimum is required.
+- In full mode, all standing rules found in the repo pass, all verification commands are green, all assumptions are verified or disclosed, and acceptance criteria are met with no unresolved blocking findings. Disclose remaining non-blocking uncertainty in "What I did NOT verify".
+- In quick mode, the same standing-rule, verification, and assumption gates pass; Pass 6 is recorded as `skipped (quick mode)` and the same acceptance criteria must be met.
 - **The pass ledger is complete** — every row present, every "no" carrying its reason. A missing row is not a passing run, it is an unreported one.
 - `quick` mode stops after Pass 5 (it still ran the tribunal, in the tribunal's own `quick` mode).
 - Or: user says stop / changes scope.
@@ -358,6 +340,6 @@ because you do not know that nothing is.
 - **Never skip the tribunal pass.** Not even when Pass 1 looked clean, and not in `quick` mode either — `quick` makes the tribunal cheaper (no debate, no rebuttal), it does not remove it. It must run against the *cleaned* post-Pass-1 artifact to be worth the spend.
 - **Never drive the external CLIs yourself.** No `codex exec`, no `gemini -p`, no `claude -p` from this skill — call `tribunal-review` and let it own them. In particular never poll a reviewer's output file in a `sleep`/`until` loop, never check availability with `which` or `command -v` (an installed binary can still be unlicensed or logged out — the skill probes for a live reply instead), and never `pkill -f "codex exec"`, which kills every unrelated Codex job on the machine. All three were real failure modes in this cycle's own logged history.
 - **Never declare done with unverified assumptions** — surface them in the final report instead.
-- **Never report a verdict richer than the ledger supports.** Dropping assumptions, or dropping confidence evidence in full mode, and still reporting SHIP is the most common way this cycle has degraded. Quick mode must carry the explicit skipped-confidence evidence instead. The ledger exists so the degrade is visible instead of silent.
+- **Never report a verdict richer than the ledger supports.** Dropping assumptions, or dropping acceptance evidence in full mode, and still reporting SHIP is the most common way this cycle has degraded. Quick mode must carry the explicit skipped-pass evidence instead. The ledger exists so the degrade is visible instead of silent.
 - **Don't batch-apply.** If you find yourself collecting fixes across Passes 1–3b without applying, you've reverted to the old workflow. Stop, apply, verify, then continue.
 - **Don't hardcode any project's stack or standing rules into this skill.** Discover them from the target repo every run — this skill is used across many unrelated projects.

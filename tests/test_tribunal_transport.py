@@ -139,8 +139,14 @@ class TestCodexSeat(StubbedPath):
             'data: {"type":"response.output_text.delta","delta":"real bug"}\n'
             'data: {"type":"response.completed"}\n'
         )
+        self._stub("codex", 'echo "codex-cli 0.153.4"\n')
         self._stub("curl", f"""
-for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done
+for a in "$@"; do
+  [ "$prev" = "-o" ] && out=$a
+  [ "$prev" = "--data-binary" ] && cp "${{a#@}}" "{self.tmp}/request.json"
+  [ "$prev" = "--config" ] && cp "$a" "{self.tmp}/headers.txt"
+  prev=$a
+done
 cat > "$out" <<'SSE'
 {sse}
 SSE
@@ -148,9 +154,14 @@ printf 200
 """)
         out = pathlib.Path(self.tmp) / "codex.txt"
         r = run_fn("direct_codex", self._prompt("review this"), str(out),
-                   env={"HOME": str(self.home)}, path_prefix=str(self.bin))
+                   env={"HOME": str(self.home), "TRIBUNAL_CODEX_MODEL": ""}, path_prefix=str(self.bin))
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(out.read_text(), "ISSUE-1 real bug")
+
+        request = json.loads((pathlib.Path(self.tmp) / "request.json").read_text())
+        self.assertEqual(request["model"], "gpt-6-astra")
+        self.assertEqual(request["reasoning"], {"effort": "low"})
+        self.assertIn("codex_cli_rs/0.153.4", (pathlib.Path(self.tmp) / "headers.txt").read_text())
 
     def test_a_stale_output_file_is_not_mistaken_for_this_run(self):
         """$SP persists across runs when CLAUDE_SCRATCHPAD is set.
@@ -233,12 +244,20 @@ printf 200
     def test_non_200_falls_back_to_the_cli(self):
         """A dead seat silently changes the consensus arithmetic. It must not."""
         self._stub("curl", 'for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done\n: > "$out"\nprintf 429\n')
-        self._stub("codex", 'for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done\necho "from the cli" > "$out"\n')
+        self._stub("codex", f'''if [ "$1" = "--version" ]; then echo "codex-cli 0.153.4"; exit; fi
+printf '%s\\n' "$@" > "{self.tmp}/cli-args.txt"
+for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done
+echo "from the cli" > "$out"
+''')
         out = pathlib.Path(self.tmp) / "codex.txt"
         r = run_fn("direct_codex", self._prompt("review this"), str(out),
-                   env={"HOME": str(self.home)}, path_prefix=str(self.bin))
+                   env={"HOME": str(self.home), "TRIBUNAL_CODEX_MODEL": "gpt-6-astra"}, path_prefix=str(self.bin))
         self.assertEqual(out.read_text().strip(), "from the cli")
         self.assertIn("429", r.stderr)
+
+        args = (pathlib.Path(self.tmp) / "cli-args.txt").read_text().splitlines()
+        self.assertEqual(args[args.index("-m") + 1], "gpt-6-astra")
+        self.assertEqual(args[args.index("-c") + 1], 'model_reasoning_effort="low"')
 
 
 class TestClaudeSeat(StubbedPath):

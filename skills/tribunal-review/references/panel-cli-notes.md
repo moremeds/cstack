@@ -114,3 +114,13 @@ Review reads the repository and stays on the CLI. Debate and rebuttal do not,
 and go direct. Do not "simplify" by routing review through `direct.sh` — that
 deletes the check behind `review.md`'s "a wrong file path or line number
 discredits every other finding you make."
+
+## Codex direct model selection
+
+Direct debate/rebuttal defaults to `gpt-6-astra` with `low` reasoning.
+`TRIBUNAL_CODEX_MODEL` can select another account-supported model; direct and
+CLI fallback use that same selection, both with `low` effort. The direct
+user-agent version is read from `codex --version`; it is omitted when unknown
+instead of inventing a client version. First-pass repository review continues
+to use the separate CLI launch in SKILL.md. Model availability must be verified
+against the account; selecting a name does not establish access.

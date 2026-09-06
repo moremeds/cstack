@@ -1,6 +1,6 @@
 ---
 name: whatup
-description: Plain-language status readout — what this work is for, what is happening right now, what actually got done, what failed, what breaks if we stop here, and what decision is waiting on you. Every claim carries the evidence it came from, or is marked unverified. Use when the user asks "status", "什么状态", "说人话现在是什么状态", "现在在做什么/什么还没做", or says the work feels out of control / off track.
+description: Read-only evidence-based status when asked what is done, blocked, unverified, or off track (status / 什么状态). Check prior claims against current artifacts; do not execute the next step.
 ---
 
 ## Runtime
@@ -31,23 +31,26 @@ section list is just packaging.
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `PR 92` / `#92`                       | that PR: `gh pr view 92 …` plus its branch                                                              |
 | a path                                | that path's history, its dirty state, and the artifact it produces                                      |
-| a phrase (`the gap autoheal feature`) | the plan/branch of that name; if you cannot map it to one, say so and report the current branch instead |
+| a phrase (`the gap autoheal feature`) | the matching plan/branch; if unresolved, report that boundary and ask only for the missing identifier |
 
 Answer in the language of the **conversation**, not of the invocation token —
 `/whatup` typed in a Chinese session gets a Chinese answer.
 
 ## Step 1 — Ground yourself (before writing one word)
 
+Resolve `TASK_BASE` using the task-scope rule below before running the diff.
+If unresolved, skip that command and report the scope as unverified.
+
 ```bash
 git status --short                        # every dirty file — do not truncate
 git status -sb | head -1                  # branch, and [ahead N] when an upstream exists
-git rev-parse --abbrev-ref '@{upstream}'  # fails ⇒ never pushed anywhere
+git rev-parse --abbrev-ref '@{upstream}'  # fails ⇒ no upstream configured
 git log --oneline -10
-git diff --stat '@{upstream}...HEAD'      # what this work changed; drop the arg if there is no upstream
+git diff --stat "$TASK_BASE"             # task changes vs the resolved target base, including tracked local edits
 gh pr view --json number,state,statusCheckRollup,headRefName,url   # the PR for THIS branch
 ```
 
-Three traps, all the same failure shape — **a command that reports "clean" when
+The traps share the same failure shape — **a command that reports "clean" when
 it actually reported nothing**:
 
 - **No `2>/dev/null` on `gh`.** Suppressed stderr makes "not logged in",
@@ -55,11 +58,18 @@ it actually reported nothing**:
   _no pull requests found for branch_ is a **fact**, report it as "no PR yet".
   Anything else (auth, network, `gh` missing) is **unverified — gh failed:
   <reason>**. Never let the second case print as the first.
-- **`git status -sb` alone is not push state.** On a branch with no upstream it
-  prints bare `## main` — no warning, no ahead count. Verified. That is why
-  `@{upstream}` is queried separately: it failing _is_ the finding ("this work
-  has never left the machine"). `origin/HEAD..HEAD` is not a substitute — that
-  range means "not in the default branch", which is a different question.
+- **No upstream does not mean never pushed.** A branch can be pushed without
+  setting tracking, or tracking can later be removed. Report only "no upstream
+  configured". To claim remote presence or absence, query the relevant remote
+  branch and compare its current SHA with HEAD; if the destination is unknown
+  or the query fails, mark push state unverified. Do not infer historical pushes
+  from the present configuration.
+- **Task scope is separate from push state.** Resolve `TASK_BASE` before the
+  command block: use the PR target branch (or the task's agreed base), then pin
+  its merge-base with HEAD. Refresh the target ref when possible and disclose a
+  stale/unavailable ref. A synchronized upstream diff can be empty while the
+  task contains many committed changes. List untracked files separately from
+  the tracked diff. If the task base cannot be resolved, report scope unverified.
 - **Never pipe `git status --short` through `head`.** It silently drops files,
   and the readout has to name everything uncommitted.
 

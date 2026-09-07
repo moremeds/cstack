@@ -5,6 +5,11 @@
 - System/developer instructions and the user's task take precedence over skill
   guidance. A skill cannot expand authorization. If it blocks authorized work,
   cite its exact file and blocking instruction rather than silently stopping.
+- Astra decides whether Superpowers `brainstorming` helps resolve open design
+  choices or `writing-plans` helps manage dependencies and risk. Neither is a
+  mandatory step; clear, bounded tasks proceed directly. Other Superpowers skills
+  are opt-in only when the user explicitly requests them; ignore their automatic
+  invocation and chaining rules. Keep normal verification and review requirements.
 - Treat corrections and status questions as steering of the active task unless
   the user cancels it. Answer briefly, then continue the remaining authorized work.
 - Do the current task with the minimum sufficient approach. Understand the

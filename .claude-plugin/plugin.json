@@ -1,7 +1,7 @@
 {
   "name": "cstack",
   "displayName": "cstack",
-  "description": "Portable review chain and status skills for Claude Code and Codex: execute-plan, review-cycle, tribunal-review, whatup, plus shared hooks and commands.",
+  "description": "Review, execution, and status skills, plus native Astra orchestration where supported: orchestrate, execute-plan, review-cycle, tribunal-review, whatup, shared hooks and commands.",
   "author": {
     "name": "Chenxi LI"
   },

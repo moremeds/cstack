@@ -4,11 +4,11 @@
 
 **C**laude Code · **C**odex · **C**ursor · **C**henxi
 
-**Four portable skills for reviewing, executing, and understanding agent work.**
+**Five skills for orchestrating, reviewing, executing, and understanding agent work.**
 
 ![license](https://img.shields.io/badge/license-MIT-black)
 ![runtimes](https://img.shields.io/badge/runtimes-Claude%20Code%20%C2%B7%20Codex-black)
-![skills](https://img.shields.io/badge/skills-4-black)
+![skills](https://img.shields.io/badge/skills-5-black)
 ![tests](https://img.shields.io/badge/tests-mutation--checked-black)
 
 </div>
@@ -19,15 +19,48 @@
 
 | When you need to… | Use |
 | --- | --- |
+| let Astra design and coordinate a task-specific agent team | `$orchestrate <task>` |
 | find out what is actually happening | `/whatup` |
 | execute an already-approved plan | `/execute-plan <plan-path>` |
 | review, fix, and re-verify an artifact | `/review-cycle <target>` |
 | get an independent cross-model review | `/tribunal-review <target>` |
 
-cstack is a Claude Code and Codex skills plugin. The four skills install
-together and share the same source files across runtimes.
+cstack is a Claude Code and Codex skills plugin. The five skills install
+together and share source files. `orchestrate` requires a host with native
+subagents and access to Astra; installing the plugin does not supply those capabilities.
 
-## The four skills
+## The five skills
+
+### `orchestrate`
+
+```text
+$orchestrate <task or approved plan>
+```
+
+Astra reads the project and designs only the roles the task needs, then chooses
+each worker's model and effort from the host's available options. For example,
+Luna/low for bounded extraction, Terra/medium for exploration, Sol/medium for
+scoped implementation, and Astra/high for difficult or high-risk reasoning.
+These are adjustable starting points, not a fixed roster.
+
+Independent work runs through native subagent tools. Each worker gets explicit
+file ownership and acceptance criteria; Astra integrates and verifies results.
+Overlapping writes run sequentially, and simple tasks need no workers. A runtime
+without Astra or configurable subagents reports the limitation instead of claiming
+an equivalent workflow. No global model defaults or custom agent files are changed.
+
+Use the same [symlink installation](#from-a-checkout) as the other skills, or
+install the plugin. In a Codex CLI session, select the lead explicitly with
+`codex -m gpt-6-astra`, then invoke `$orchestrate`. The skill adapts to available
+tools; it does not change the model of an already-running session by assertion.
+
+The workflow follows the [official subagents guide](https://learn.chatgpt.com/docs/agent-configuration/subagents).
+
+Validation on 2026-09-07: native dispatch accepted two bounded read-only workers
+requesting Sol/medium and Luna/low, and both returned results. Their feedback
+closed the ownership-transfer and nested-tool gaps. Returned metadata did not
+independently identify the serving model/effort, so these remain requested
+settings, not a latency benchmark or a guarantee about every runtime.
 
 ### `whatup`
 
@@ -179,7 +212,7 @@ lost the thread ─────────────────────�
 /plugin install cstack@cstack
 ```
 
-This installs all four skills together, plus the shared Claude Code commands
+This installs all five skills together, plus the shared Claude Code commands
 and hooks.
 
 ### From a checkout
@@ -207,7 +240,7 @@ evidence. Hook checks are best-effort helpers, not a complete security boundary.
 ## What else is in the repo?
 
 ```text
-skills/    the plugin       execute-plan, review-cycle, tribunal-review, whatup
+skills/    the plugin       orchestrate, execute-plan, review-cycle, tribunal-review, whatup
 rules/     standing rules   maintainer defaults for Claude Code and Codex
 hooks/     hard guardrails  block or rewrite selected Claude Code tool calls
 commands/  entry points     small shared Claude Code commands

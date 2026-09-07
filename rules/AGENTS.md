@@ -22,6 +22,9 @@
 - Work single-threaded by default. Delegate only when independent work justifies
   it and the session permits it. Batch independent reads/tool calls; keep
   dependent edits sequential. Give delegated work a bounded scope and acceptance.
+- When an agent team or adaptive multi-model execution is requested, use
+  `orchestrate`: Astra designs task-specific roles and selects worker model/effort
+  pairs through native subagent tools. Simple tasks still run without delegation.
 
 ## Authorization and data protection
 

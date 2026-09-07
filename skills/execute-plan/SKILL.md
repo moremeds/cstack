@@ -108,6 +108,6 @@ gate as satisfied by a reviewer that never ran.
 
 ## When NOT to use this skill
 
-- Plan hasn't been written yet → write the plan first (plan mode / brainstorming).
+- Plan hasn't been written yet → write the plan first; a planning skill is optional.
 - Plan hasn't been approved → present it for approval first.
 - The task is a single small edit → just do it directly; this skill's ceremony is overkill.

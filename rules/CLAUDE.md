@@ -118,3 +118,5 @@ Two rules that outlive any particular layout:
   `~/.claude/skills/` and `~/.agents/skills/` is scanned as a skill, so a backup
   copy becomes a second live skill shadowing the first. Put them outside the
   tree, under a dated directory.
+
+@/Users/chenxi/projects/c-memory/INDEX.md

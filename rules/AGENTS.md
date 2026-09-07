@@ -89,3 +89,5 @@
 - Before compaction or a necessary handoff, preserve the user's exact constraints,
   decisions, current status, open items, evidence paths, and hard-to-reconstruct
   details. Record difficulties and rejected approaches briefly.
+
+Read /Users/chenxi/projects/c-memory/INDEX.md before starting work; consult the files it lists when their hook matches.

@@ -40,7 +40,7 @@ $orchestrate <task or approved plan>
 Astra reads the project and designs only the roles the task needs, then chooses
 each worker's model and effort from the host's available options. For example,
 Luna/low for bounded extraction, Terra/medium for exploration, Sol/medium for
-scoped implementation, and Astra/high for difficult or high-risk reasoning.
+scoped implementation, and Astra/medium for difficult or high-risk reasoning.
 These are adjustable starting points, not a fixed roster.
 
 Independent work runs through native subagent tools. Each worker gets explicit

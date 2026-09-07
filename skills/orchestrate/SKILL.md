@@ -18,7 +18,7 @@ are needed. Simple tasks can finish with Astra alone.
   If this session is already Astra, lead here without another manager agent.
   Keep its current effort unless the host exposes a supported way to change it.
 - If another model is running, delegate the complete orchestration assignment to
-  an Astra lead, normally `high`, using native tools. The outer agent relays the
+  an Astra lead, normally `medium`, using native tools. The outer agent relays the
   result without creating a second worker team. If workers are needed, check
   that the lead has spawn tools and available depth/slots. If it cannot spawn,
   let Astra design assignments and approve integration while the outer agent
@@ -51,7 +51,7 @@ not promises of availability or measured superiority:
 | Clear extraction, bounded documentation lookup, mechanical checks | `gpt-5.6-luna` / `low` |
 | Read-heavy exploration, tracing an existing path | `gpt-5.6-terra` / `medium` |
 | Scoped implementation with known acceptance | `gpt-5.6-sol` / `medium` |
-| Ambiguous design, difficult diagnosis, security/money/data-loss review | `gpt-6-astra` / `high` |
+| Ambiguous design, difficult diagnosis, security/money/data-loss review | `gpt-6-astra` / `medium` |
 
 Adjust roles and effort to task uncertainty and impact. Do not use high effort
 for every worker or assign a cheaper model to critical work just to fill the

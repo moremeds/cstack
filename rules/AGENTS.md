@@ -90,4 +90,9 @@
   decisions, current status, open items, evidence paths, and hard-to-reconstruct
   details. Record difficulties and rejected approaches briefly.
 
-Read /Users/chenxi/projects/c-memory/INDEX.md before starting work; consult the files it lists when their hook matches.
+## Private overlay
+
+Machine- and account-specific instructions do not belong in this public repo:
+no absolute home paths, no private repo names, nothing tied to one account.
+They live in `~/.codex/local.md`. Read that file at session start if it exists
+and follow it; if it does not exist, proceed without it.

@@ -119,4 +119,13 @@ Two rules that outlive any particular layout:
   copy becomes a second live skill shadowing the first. Put them outside the
   tree, under a dated directory.
 
-@/Users/chenxi/projects/c-memory/INDEX.md
+## Private overlay
+
+Machine- and account-specific instructions do not belong in this public repo:
+no absolute home paths, no private repo names, nothing tied to one account.
+They live in `~/.claude/local.md`, imported below. That file is absent by
+default and a missing import is silently skipped, so this line is inert until
+something creates it. Whatever creates it owns it; this repo declares only the
+seam.
+
+@~/.claude/local.md

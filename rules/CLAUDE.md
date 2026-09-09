@@ -4,9 +4,8 @@
 
 - **Never add a `Co-Authored-By: Claude …` trailer** to commit messages. Write the commit message as if the user authored it. This overrides the default Claude Code protocol.
 - Do not add any other AI/tool attribution trailers (`Generated-By:`, `Assisted-By:`, etc.) unless explicitly asked.
-- **Always open a PR before merging to master/main.** Never `git push origin master` directly. Push the branch, open a PR via `gh pr create`, let CI run, then merge. When the user says "push", interpret it as "push the branch and open a PR" unless they explicitly say otherwise.
-- **One change, one PR — do not split unless there is an absolute reason.** Keep a change and everything it needs together in a single PR: code, tests, docs, and the CHANGELOG/release-notes entry. Only split when there is a concrete, unavoidable reason — e.g. an independent prerequisite that must merge (and sometimes deploy) before the rest, or a diff genuinely too large to review as one unit — and state that reason explicitly. "I forgot something" or convenience is never a reason: amend the existing branch/PR instead of opening a follow-up. Before opening a second PR on the same topic, stop and confirm the first one can't simply absorb the change.
-- **Never create unnecessary branches or PRs.** Bug fixes and follow-on tweaks that belong to an open PR go as additional commits on that branch — not a new branch. Do not open a PR for something that should be a direct commit on the existing branch.
+- **Always open a PR before merging to master/main.** Never `git push origin master` directly. Push the branch and open a PR via `gh pr create`, then merge. When the user says "push", interpret it as "push the branch and open a PR" unless they explicitly say otherwise.
+- **One change, one PR — do not split unless there is an absolute reason.** Keep a change and everything it needs together in a single PR: code, tests, docs, and the CHANGELOG/release-notes entry. Only split when there is a concrete, unavoidable reason — e.g. an independent prerequisite that must merge (and sometimes deploy) before the rest, or a diff genuinely too large to review as one unit — and state that reason explicitly. "I forgot something" or convenience is never a reason: bug fixes and follow-on tweaks that belong to an open PR go as additional commits on that branch, and work that should be a direct commit on an existing branch never becomes a new PR. Before opening a second PR on the same topic, stop and confirm the first one can't simply absorb the change.
 - **Never merge before CI is green.** Wait for all checks to pass before merging any PR, no exceptions.
 
 ## Git worktrees
@@ -24,7 +23,7 @@
 
 ## No synthetic data
 
-_Scope: this section and "Research & backtest persistence" below apply to trading/quant/financial-data projects. Name yours here. For repos with no market-data surface, skip them._
+_Scope: this section and "Research & backtest persistence" below apply to any repo with a market-data surface — one that handles prices, quotes, chains, greeks, fills, positions, or backtest output. Repos without one skip both._
 
 - **Never present invented market/financial values as real** — no made-up prices, tickers, volumes, Greeks, or fills passed off as observed data, in code, demos, or analysis. Extends _No fabrication_ from prose to runtime data.
 - **Simulation and test doubles are fine; fabrication is not.** Labeled simulation (Monte Carlo paths, GBM, synthetic load) is legitimate modeling. Mocking/stubbing external services (broker client, data APIs) is expected — the ban is on feeding fabricated _values_ through them, not on the technique.
@@ -41,6 +40,13 @@ Separate observed facts, calculations, and inference where the distinction
 matters. Give sources and material uncertainty without tagging every sentence
 or assigning uncalibrated percentages. Use concise, plain language and revise
 claims when the evidence changes. Do not add a ritual rule-compliance footer.
+
+Say what you mean. Mannered prose substitutes metaphor and flourish for direct
+statement — "a dial worth turning" instead of "a parameter worth varying",
+"this earns its keep" instead of "this still matters". The figure displays the
+writer rather than carrying the idea, and it is imprecise: a metaphor drags in
+connotations you did not choose and cannot control. When a literal phrase is
+available, use it.
 
 User instructions take precedence over skill guidelines. If a skill blocks
 an authorized step, name its file and exact instruction. Finish independent
@@ -59,19 +65,20 @@ work while a necessary clarification is pending.
 
 Every read, write, and reply costs tokens. Save them by reading and saying less, not by doing less.
 
-- Locate before reading: grep / symbol search first, then read only the needed line range. Never `cat` a whole file; do not read a file over 300 lines in full unless the task truly needs it.
+- Locate before reading: grep / symbol search first, then read only the needed line range. Read a file in full only when the task genuinely needs all of it (a review, a rewrite) and it is under ~300 lines.
 - Do not re-read a file already read, or re-paste content already in context.
 - Filter command output before looking at it (`head` / `tail` / `grep` / `wc` / `--quiet`); never pour a full log, diff, or test run into context.
 - Replies carry the conclusion and the necessary evidence only: no restating file contents, no echoing the user's words, no listing options that were not taken.
-- No "just in case" subagents, tool calls, or lookups. Before each call ask: if I skip this, does the task stall? (Delegation required by _Fable orchestration mode_ is not "just in case".)
-- When context grows, summarize / compact proactively; the summary preserves: difficulties hit and how they were resolved, options tried or rejected and why, exact stated constraints/preferences/decisions (close to the user's own words), current status, open items, and specific details hard to reconstruct (names, numbers, paths, exact wording) — condense your own reasoning harder than the user's input.
+- No "just in case" subagents, tool calls, or lookups. Before each call ask: if I skip this, does the task stall? (Delegation covered by the dispatch rules below is not "just in case".)
+- The handoff summary written before compaction preserves: difficulties hit and how they were resolved, options tried or rejected and why, exact stated constraints/preferences/decisions (close to the user's own words), current status, open items, and specific details hard to reconstruct (names, numbers, paths, exact wording) — condense your own reasoning harder than the user's input.
 - Browser checks use text snapshots (a11y tree / DOM query) by default; take a screenshot (~300k chars each) only for visual verification the task actually requires.
 
 ## Session & dispatch discipline
 
 - **Never use the superpowers SDD / parallel-dispatch pattern** (`subagent-driven-development`, `dispatching-parallel-agents`: per-task implementer + reviewer agents, parallel fan-out). This overrides those skills. **Approved plans are executed with the user's own `/execute-plan` skill** (worktree → straight-through implementation → milestone commits → evidence-based verification); outside Fable orchestration mode it runs linearly in the main session.
 - **Cross-model review goes through `/tribunal-review`** (`~/.agents/skills/tribunal-review`), the portable skill both Claude and Codex orchestrate. Here Claude runs it and Codex is the peer reviewer (weight 1.0); in Codex the roles swap. Cursor/Grok (`cursor-agent`, model `cursor-grok-4.6-high`) is a weight-1.0 cross-lineage panelist available in both runtimes; Gemini is a weight-0.5 advisor; availability is determined by the current launch. The review launch is the availability probe; skip with a named reason when it fails. Pass `focus: <text>` to steer emphasis; focus raises attention and never suppresses an off-topic CRITICAL. `/review-cycle` (also portable, `~/.agents/skills/review-cycle`) calls it as its Pass 2 engine.
-- Any delegated agent (Fable mode or research) gets a bounded scope, explicit acceptance criteria, and a turn budget (~40 turns); past budget, stop it and rescope instead of letting it grind.
+- **Opus delegates labor to Sonnet; Sonnet and smaller models do the work themselves.** Running as Opus, send independent search, bulk reading, extraction, cross-checks, and mechanical edits to a subagent with `model: "sonnet"` set explicitly whenever that saves main-context tokens. Keep problem framing, key decisions, design tradeoffs, evidence synthesis, integration, and final acceptance yourself. One named worker per bounded task — this is not the fan-out banned above: no per-task implementer+reviewer pairs, no parallel swarm of peers. Use `orchestrate` only when the work genuinely needs several distinct roles at once; a single worker goes straight through the Agent tool.
+- Any delegated agent (Opus→Sonnet labor, Fable mode, or research) gets a bounded scope, explicit acceptance criteria, and a turn budget (~40 turns); past budget, stop it and rescope instead of letting it grind.
 - **When context usage exceeds 35%**, finish the current step, write a handoff summary (task state, files changed, blockers, next step), then compact before continuing substantive work — trigger compaction if the harness supports it, otherwise ask the user to `/compact`.
 
 ## Fable orchestration mode

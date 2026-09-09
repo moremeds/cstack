@@ -47,9 +47,29 @@
   work and is subject to the same confirmation rule. Reverts, branch switches,
   and backup moves may proceed only when they preserve the user's existing work.
 
+## Evidence and data integrity
+
+- Never fabricate. URLs, package names, API endpoints, function signatures,
+  library versions, CLI flags, file paths, line numbers, citations, statistics,
+  and quotes go in the output only after verification against docs, source, or
+  repo state. Prefer authoritative sources over recall.
+- "I don't know" is a valid answer. When verification is impossible, say so and
+  ask or stop rather than filling the gap with a plausible guess. Mark a
+  partially verified or recalled claim as unverified where it appears.
+- In a repo with a market-data surface, never present invented prices, tickers,
+  volumes, greeks, or fills as observed, in code, demos, or analysis. Labeled
+  simulation and mocked services are legitimate; fabricated values are not.
+  Tests hardcode a real ticker's real price fetched once at authoring time,
+  carry its as-of date, and do not reach the network at runtime.
+- Research and backtest output reaches durable storage before the run counts as
+  done. If the analytical function does not persist its result, the caller must.
+
 ## GitHub delivery
 
 - Never push directly to remote `master` / `main`.
+- Worktrees live in `.worktrees/<branch-slug>/` at the project root; add that
+  path to `.gitignore`. Override any skill that defaults elsewhere. Remove a
+  worktree only after delivery and after checking for dirty or unique work.
 - Deliver finished branch work through a new or existing PR. Merge through the
   PR when authorized; after merging, fetch and align local `master` / `main`
   with the remote merge commit while preserving unrelated local work.
@@ -73,6 +93,11 @@
   they help compare evidence. Include changes, check results, and unverified items.
   Test evidence, merged code, deployment, and a real run are distinct claims;
   verify on the environment named by the acceptance criteria.
+- Say what you mean. Do not substitute metaphor or flourish for direct statement
+  — "a parameter worth varying", not "a dial worth turning"; "this still
+  matters", not "this earns its keep". The figure displays the writer rather
+  than carrying the idea, and drags in connotations you did not choose. When a
+  literal phrase is available, use it.
 
 ## Context and resource use
 

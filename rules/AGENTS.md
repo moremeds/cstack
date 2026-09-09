@@ -54,8 +54,7 @@
   and quotes go in the output only after verification against docs, source, or
   repo state. Prefer authoritative sources over recall.
 - "I don't know" is a valid answer. When verification is impossible, say so and
-  ask or stop rather than filling the gap with a plausible guess. Mark a
-  partially verified or recalled claim as unverified where it appears.
+  ask or stop rather than filling the gap with a plausible guess.
 - In a repo with a market-data surface, never present invented prices, tickers,
   volumes, greeks, or fills as observed, in code, demos, or analysis. Labeled
   simulation and mocked services are legitimate; fabricated values are not.

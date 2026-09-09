@@ -23,7 +23,7 @@
 
 ## No synthetic data
 
-_Scope: this section and "Research & backtest persistence" below apply to any repo with a market-data surface — one that handles prices, quotes, chains, greeks, fills, positions, or backtest output. Repos without one skip both._
+_Scope: this section and "Research & backtest persistence" below apply to any repo with a market-data surface — one that handles prices, quotes, chains, Greeks, fills, positions, or backtest output. Repos without one skip both._
 
 - **Never present invented market/financial values as real** — no made-up prices, tickers, volumes, Greeks, or fills passed off as observed data, in code, demos, or analysis. Extends _No fabrication_ from prose to runtime data.
 - **Simulation and test doubles are fine; fabrication is not.** Labeled simulation (Monte Carlo paths, GBM, synthetic load) is legitimate modeling. Mocking/stubbing external services (broker client, data APIs) is expected — the ban is on feeding fabricated _values_ through them, not on the technique.
@@ -65,7 +65,7 @@ work while a necessary clarification is pending.
 
 Every read, write, and reply costs tokens. Save them by reading and saying less, not by doing less.
 
-- Locate before reading: grep / symbol search first, then read only the needed line range. Read a file in full only when the task genuinely needs all of it (a review, a rewrite) and it is under ~300 lines.
+- Locate before reading: grep / symbol search first, then read only the needed line range. Read a file in full only when the task genuinely needs all of it (a review, a rewrite); past ~300 lines work in ranges unless the whole file is the unit of work.
 - Do not re-read a file already read, or re-paste content already in context.
 - Filter command output before looking at it (`head` / `tail` / `grep` / `wc` / `--quiet`); never pour a full log, diff, or test run into context.
 - Replies carry the conclusion and the necessary evidence only: no restating file contents, no echoing the user's words, no listing options that were not taken.
@@ -77,7 +77,7 @@ Every read, write, and reply costs tokens. Save them by reading and saying less,
 
 - **Never use the superpowers SDD / parallel-dispatch pattern** (`subagent-driven-development`, `dispatching-parallel-agents`: per-task implementer + reviewer agents, parallel fan-out). This overrides those skills. **Approved plans are executed with the user's own `/execute-plan` skill** (worktree → straight-through implementation → milestone commits → evidence-based verification); outside Fable orchestration mode it runs linearly in the main session.
 - **Cross-model review goes through `/tribunal-review`** (`~/.agents/skills/tribunal-review`), the portable skill both Claude and Codex orchestrate. Here Claude runs it and Codex is the peer reviewer (weight 1.0); in Codex the roles swap. Cursor/Grok (`cursor-agent`, model `cursor-grok-4.6-high`) is a weight-1.0 cross-lineage panelist available in both runtimes; Gemini is a weight-0.5 advisor; availability is determined by the current launch. The review launch is the availability probe; skip with a named reason when it fails. Pass `focus: <text>` to steer emphasis; focus raises attention and never suppresses an off-topic CRITICAL. `/review-cycle` (also portable, `~/.agents/skills/review-cycle`) calls it as its Pass 2 engine.
-- **Opus delegates labor to Sonnet; Sonnet and smaller models do the work themselves.** Running as Opus, send independent search, bulk reading, extraction, cross-checks, and mechanical edits to a subagent with `model: "sonnet"` set explicitly whenever that saves main-context tokens. Keep problem framing, key decisions, design tradeoffs, evidence synthesis, integration, and final acceptance yourself. One named worker per bounded task — this is not the fan-out banned above: no per-task implementer+reviewer pairs, no parallel swarm of peers. Use `orchestrate` only when the work genuinely needs several distinct roles at once; a single worker goes straight through the Agent tool.
+- **Opus delegates labor to Sonnet; Sonnet and smaller models do the work themselves.** Running as Opus, send independent search, bulk reading, extraction, cross-checks, and mechanical edits to a subagent with `model: "sonnet"` set explicitly whenever that saves main-context tokens. Keep problem framing, key decisions, design tradeoffs, evidence synthesis, integration, and final acceptance yourself. One named worker per bounded task — this is not the fan-out banned above: no per-task implementer+reviewer pairs, no parallel swarm of peers. Use `orchestrate` only when the work genuinely needs several distinct roles at once; a single worker goes straight through the Agent tool. This holds inside `/execute-plan`: the plan still runs as one linear thread, but a bulk mechanical step within it may go to a Sonnet worker.
 - Any delegated agent (Opus→Sonnet labor, Fable mode, or research) gets a bounded scope, explicit acceptance criteria, and a turn budget (~40 turns); past budget, stop it and rescope instead of letting it grind.
 - **When context usage exceeds 35%**, finish the current step, write a handoff summary (task state, files changed, blockers, next step), then compact before continuing substantive work — trigger compaction if the harness supports it, otherwise ask the user to `/compact`.
 

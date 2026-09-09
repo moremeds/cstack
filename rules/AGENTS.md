@@ -56,7 +56,7 @@
 - "I don't know" is a valid answer. When verification is impossible, say so and
   ask or stop rather than filling the gap with a plausible guess.
 - In a repo with a market-data surface, never present invented prices, tickers,
-  volumes, greeks, or fills as observed, in code, demos, or analysis. Labeled
+  volumes, Greeks, or fills as observed, in code, demos, or analysis. Labeled
   simulation and mocked services are legitimate; fabricated values are not.
   Tests hardcode a real ticker's real price fetched once at authoring time,
   carry its as-of date, and do not reach the network at runtime.

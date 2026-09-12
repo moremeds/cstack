@@ -49,7 +49,14 @@ All CLIs inject their rules at startup. After a bootstrap or rules change,
 an adopted worker is running on the old rules; restart it (close its pane
 if you created it, or ask the user) rather than assuming it caught up.
 
-Remote workers: run the same commands through `herdr --remote <machine>`;
+Remote workers: `herdr machine add <ssh-target> --label <name>` once (it
+installs or checks herdr there and starts its server). Control commands run
+on that host over SSH, not through `herdr --remote`, which attaches the TUI:
+
+```bash
+ssh <machine> 'export PATH=$HOME/.local/bin:/opt/homebrew/bin:$PATH; herdr agent list'
+```
+
 IDs and names are per server, so rediscover them there.
 
 ## Dispatch and wait

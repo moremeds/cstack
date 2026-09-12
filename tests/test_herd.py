@@ -83,7 +83,7 @@ HERDR_VERBS = {
     "agent list", "agent get", "agent read", "agent send-keys", "agent prompt",
     "agent rename", "agent wait", "agent start", "agent explain",
     "pane split", "pane run", "pane wait-output", "pane read", "pane layout", "pane close",
-    "workspace list", "machine list", "integration status", "integration install",
+    "workspace list", "machine list", "machine add", "integration status", "integration install",
     "status",
 }
 VERB_RE = re.compile(r"herdr ((?:agent|pane|workspace|machine|integration) [a-z-]+|status)\b")

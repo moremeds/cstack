@@ -13,7 +13,12 @@ The lead is herdr pane `LEAD_PANE=<pane id>`.
 1. Scope. Implement only the tasks in this plan, in order. Anything the
    plan does not name is out of scope; report it, do not do it.
 2. Files. You own: <globs>. You never write: <globs, e.g. data lake,
-   ledgers, production config>.
+   ledgers, production config>. If your CLI runs in bypass mode nothing
+   will stop a write outside this list; the lead's diff check will, and
+   the task is rejected whole.
+2b. Ground truth. Facts this task depends on and how to fetch them, not
+   the lead's summary of them: <e.g. `ssh macmini ls ~/.claude/projects`,
+   `git -C <repo> log -1`, a fixture path>. Fetch before designing.
 3. Environment. Commands run only in <allowed dirs>; temp files under
    <temp dir>. No network calls except <list|none>.
 4. Evidence. Every task leaves `<evidence dir>/t<n>.md`, or appends a

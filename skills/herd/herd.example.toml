@@ -19,6 +19,9 @@ machine = "local"
 # "auto" auto-approves read-only tools only (devin --help); edits still block
 # and are answered under the execution contract
 args = ["--permission-mode", "auto"]
+# command classes the lead may approve on the user's behalf when a dialog
+# appears; everything else goes to the user. Absent = nothing pre-approved.
+preapproved = ["ls", "cat", "find", "du", "stat", "head", "wc", "git log", "git status"]
 
 [[worker]]
 name = "bench"

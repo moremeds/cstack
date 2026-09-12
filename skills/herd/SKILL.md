@@ -37,6 +37,15 @@ each role, in this order:
 Rules that hold across all three:
 
 - `ListAgents` first; never message a session whose status is `working`.
+- Ground truth travels with the assignment: when a task depends on another
+  machine's or repo's state, dispatch a read-only scout first (a
+  `mini-runner`-style worker) and attach its evidence, or name the exact
+  commands the worker runs to fetch it. The lead's description is not data.
+- Bypass is not approval. A worker started in bypass mode (or with a
+  standing allow rule) never prompts, so the contract's forbidden paths and
+  the lead's diff check are the only guard on writes; give such a worker a
+  worktree of its own and reject any commit that touches outside it.
+  Production boxes get read-only tasks unless the user says otherwise.
 - One bounded assignment per worker: goal, worktree path, file ownership,
   acceptance check, and the reply format from
   `references/execution-contract.md`. Workers do not delegate further.

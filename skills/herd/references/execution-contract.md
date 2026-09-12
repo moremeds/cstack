@@ -24,7 +24,9 @@ The lead is herdr pane `LEAD_PANE=<pane id>`.
 4. Evidence. Every task leaves `<evidence dir>/t<n>.md`, or appends a
    `## Task <n>` section to the plan's own evidence file when the plan names
    one, with the exact commands run, exit codes, and pasted output the
-   reviewer can re-run.
+   reviewer can re-run. A worker on another machine writes it to <remote
+   path>; the lead copies it into the repo's evidence dir before accepting,
+   and acceptance is not valid until that copy exists.
 5. Commits. One commit per task, message `task <n>: <plan title>`. No
    attribution trailers: no `Co-Authored-By`, no `Generated with`. Workers
    add these by default, so this rule is repeated in every dispatch and

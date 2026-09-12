@@ -103,11 +103,9 @@ commands never block at all.
 
 ## Teardown
 
-```bash
-herdr pane close <pane you created>
-```
-
-Only panes this skill created. Adopted workers stay.
+There is none. A worker pane holds context the next dispatch re-adopts by
+name; the lead never runs `herdr pane close` on a worker. The verb exists
+for the user's own tidying.
 
 ## Safety (from herdr's own skill file, verbatim in spirit)
 

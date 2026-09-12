@@ -37,11 +37,23 @@ each role, in this order:
 Rules that hold across all three:
 
 - `ListAgents` first; never message a session whose status is `working`.
+- Ground truth travels with the assignment: when a task depends on another
+  machine's or repo's state, dispatch a read-only scout first (a
+  `mini-runner`-style worker) and attach its evidence, or name the exact
+  commands the worker runs to fetch it. The lead's description is not data.
+- Bypass is not approval. A worker started in bypass mode (or with a
+  standing allow rule) never prompts, so the contract's forbidden paths and
+  the lead's diff check are the only guard on writes; give such a worker a
+  worktree of its own and reject any commit that touches outside it.
+  Production boxes get read-only tasks unless the user says otherwise.
 - One bounded assignment per worker: goal, worktree path, file ownership,
   acceptance check, and the reply format from
   `references/execution-contract.md`. Workers do not delegate further.
 - Workers that write code get a worktree under `.worktrees/<branch>/`
-  (`git worktree add`), and the herdr pane's `--cwd` points at it.
+  (`git worktree add`), and the herdr pane's `--cwd` points at it. An
+  adopted worker whose pane sits in another repo is the wrong worker for
+  it: Devin scopes its allow rules per project, so every command class in
+  the worktree re-prompts.
 
 ## 3. Discover and adopt herdr workers
 
@@ -75,7 +87,9 @@ herdr agent list
 
 Fill `references/execution-contract.md` with the worker's name, worktree,
 owned and forbidden paths, evidence dir, and `LEAD_PANE=$HERDR_PANE_ID`.
-Put it at the top of the plan or assignment. Then, all workers in parallel:
+Put it at the top of the plan or assignment, and repeat rules 5 and 6 in
+every later dispatch: workers drop them once the first task is behind
+them. Then, all workers in parallel:
 
 - peer session: `SendMessage` with the assignment.
 - herdr agent: `herdr agent prompt <name> "<assignment>" --wait --timeout <ms>`,

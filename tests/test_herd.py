@@ -152,5 +152,55 @@ class TestContract(unittest.TestCase):
         self.assertIn("<pre-approved prompts", self.body)
 
 
+SKILL = HERD / "SKILL.md"
+
+
+class TestSkill(unittest.TestCase):
+    def setUp(self):
+        self.body = SKILL.read_text()
+
+    def test_frontmatter(self):
+        self.assertTrue(self.body.startswith("---\nname: herd\n"))
+
+    def test_three_transports_in_decision_order(self):
+        sec = self.body[self.body.index("## 2. Choose a transport"):]
+        sec = sec[:sec.index("## 3.")]
+        order = [sec.index(k) for k in ("peer session", "herdr agent", "native subagent")]
+        self.assertEqual(order, sorted(order), "decision order is peer → herdr → native")
+
+    def test_gate_falls_back_to_orchestrate(self):
+        self.assertIn('test "${HERDR_ENV:-}" = 1', self.body)
+        self.assertIn("`orchestrate`", self.body)
+
+    def test_cites_only_real_herdr_verbs(self):
+        unknown = cited_verbs(self.body) - HERDR_VERBS
+        self.assertEqual(unknown, set())
+
+    def test_uses_contract_report_line(self):
+        self.assertIn("herd-report", self.body)
+        self.assertIn("herd-continue", self.body)
+        self.assertIn("herd-reject", self.body)
+
+    def test_never_messages_working_session(self):
+        self.assertIn("never message a session whose status is `working`", self.body)
+
+    def test_blocked_surfaced_not_answered(self):
+        self.assertIn("show the user the dialog", self.body)
+        self.assertNotIn("send-keys reviewer y", self.body)
+
+    def test_roster_args_and_restart_rule(self):
+        self.assertIn("`args`", self.body)
+        self.assertIn("restart", self.body)
+
+    def test_same_setup_precondition(self):
+        self.assertIn("same rules, skills, and memory", self.body)
+
+    def test_links_orchestrate_team_design(self):
+        self.assertIn("orchestrate/SKILL.md", self.body)
+
+    def test_under_250_lines(self):
+        self.assertLessEqual(self.body.count("\n"), 250)
+
+
 if __name__ == "__main__":
     unittest.main()

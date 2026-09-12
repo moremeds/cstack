@@ -28,6 +28,9 @@
   for delegation mechanics and model/effort selection. Simple tasks run directly;
   unavailable subagents do not block work that can be completed locally. Disclose
   the limitation without claiming a substitute fulfilled an explicit team request.
+- Use `herd` instead when a worker must outlive one task, live in another
+  repo's session, or run on another model or machine; it adds the transport
+  choice and a per-task review gate on top of `orchestrate`'s team design.
 
 ## Authorization and data protection
 

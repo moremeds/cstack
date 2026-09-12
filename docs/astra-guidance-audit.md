@@ -164,3 +164,17 @@ model names. Its managed installation was not patched or shadowed. The installed
 `skill-creator` already uses narrow discovery and progressive disclosure, so no
 change was warranted. Superpowers and unrelated duplicate skill installations
 remain outside this Codex source change.
+
+### Merge preparation after the herd changes
+
+Updated against main `a373a78396b13c575608d688ba2884e71cc07ea5` before merging.
+The AGENTS conflict was resolved by retaining the new `herd` routing bullet
+alongside the slimmed native-delegation guidance. Numbered orchestrate headings
+were retained because `herd` references section 2; herd's own assignment-table
+requirement remains unchanged. Claude rules, herd, shared workflows, hooks,
+manifests, and tests match that main revision exactly.
+
+The combined instruction size is now 15,499 to 13,065 bytes (15.7% smaller).
+All 117 tests passed after integration; the skill validator and diff checks
+passed. The earlier native exercises apply to the unchanged task boundaries;
+they are not a fresh behavioral test of herd or installed-policy reload.

@@ -11,7 +11,7 @@ Use native subagents for independent work that benefits the task. Simple tasks
 can finish with Astra alone. This skill grants no extra scope or authority;
 do not add a scheduler, direct completion API, or persistent agent files.
 
-## Lead and scope
+## 1. Lead and scope
 
 - Astra (`gpt-6-astra`) owns scope, decisions, integration, and final acceptance.
   Lead here if already Astra; keep the current effort unless the host supports
@@ -25,7 +25,7 @@ do not add a scheduler, direct completion API, or persistent agent files.
   call another model Astra, launch a CLI farm, or silently downgrade the lead.
   Continue independent read-only preparation; ask only if a substitute is needed.
 
-## Assign independent work
+## 2. Assign independent work
 
 Choose roles from the actual deliverables. Before dispatch, state each worker's
 scope, model/effort, ownership, dependencies, and acceptance briefly; use a table
@@ -48,7 +48,7 @@ disclose a supported alternative rather than silently substituting. Narrow or
 escalate a reasoning-blocked assignment instead of repeating it unchanged.
 Do not change global defaults or claim an unavailable model switch.
 
-## Dispatch
+## 3. Dispatch
 
 Use the actual tool schema, not assumed argument names:
 
@@ -68,7 +68,7 @@ Use the actual tool schema, not assumed argument names:
 Start independent ready work within free slots, counting the lead/outer relay.
 Use only useful workers; the lead does independent work while they run.
 
-## Ownership and steering
+## 4. Ownership and steering
 
 Read-only investigations may run together. Writers own disjoint files in the
 task's isolated worktree. For shared files, use read-only help or transfer exclusive
@@ -86,7 +86,7 @@ interrupt stale work before reassigning files, and keep still-valid evidence.
 Timeout, silence, and unavailable models are not success. Retry after a meaningful
 change; otherwise complete the subtask locally or report its blocker.
 
-## Acceptance and delivery
+## 5. Acceptance and delivery
 
 Wait for every required deliverable. Inspect worker changes and evidence against
 the original acceptance criteria; a worker's "done" is not verification. Resolve

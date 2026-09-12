@@ -1,0 +1,43 @@
+# Execution contract for a `herd` worker
+
+Paste this block, with the `<slots>` filled, at the top of the plan or
+assignment the worker receives. Lifted from the livewire notify-rewrite
+plan of 2026-09-12, generalized.
+
+```text
+## Execution contract — read before Task 0
+
+You are worker `<name>` (kind `<kind>`), working in `<worktree path>`.
+The lead is herdr pane `LEAD_PANE=<pane id>`.
+
+1. Scope. Implement only the tasks in this plan, in order. Anything the
+   plan does not name is out of scope; report it, do not do it.
+2. Files. You own: <globs>. You never write: <globs, e.g. data lake,
+   ledgers, production config>.
+3. Environment. Commands run only in <allowed dirs>; temp files under
+   <temp dir>. No network calls except <list|none>.
+4. Evidence. Every task leaves `<evidence dir>/t<n>.md` with the exact
+   commands run, exit codes, and pasted output the reviewer can re-run.
+5. Commits. One commit per task, message `task <n>: <plan title>`. No
+   attribution trailers.
+6. Review gate. Stop after every task. Report with exactly one line:
+   herd-report <worker> task <n>: commit <sha>, evidence <path>, deviations: <text|none>
+   sent as: herdr agent prompt $LEAD_PANE "<that line>"
+   Do not start the next task until the lead replies `herd-continue <n+1>`.
+7. Rejections. If the lead replies `herd-reject <n>: <reason>`, fix on top
+   with a new commit and report again; never rewrite or amend the rejected
+   commit.
+8. Blocked. You were started with read-only commands pre-approved. For any
+   other permission prompt, stop and wait; the lead answers only prompts
+   listed here: <pre-approved prompts, e.g. "edit files under src/">, and
+   everything else goes to the user.
+9. Deviations. Any step you could not do as written is a deviation. Name it
+   in the report line; do not silently substitute.
+```
+
+Reviewer checklist (the lead runs this on every `herd-report`):
+
+- commit maps to the plan task, nothing more
+- evidence file commands are real and re-runnable; re-run one
+- forbidden paths untouched (`git show --stat <sha>`)
+- deviations either accepted in the reply or the task is rejected

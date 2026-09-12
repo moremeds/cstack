@@ -66,8 +66,9 @@ herdr agent list
   in `references/herdr-cli.md`.
 - Adopted after a rules or bootstrap change: the worker injected its rules at
   startup and is stale; restart it, or ask the user to.
-- `machine` other than `local`: run the same through `herdr --remote <machine>`
-  and rediscover ids there.
+- `machine` other than `local`: run the same commands on that host over
+  SSH (`ssh <machine> herdr agent …`; `herdr --remote` only attaches the TUI)
+  and rediscover ids there, since ids and names are per server.
 - Not in the roster: do not start it. Report the gap.
 
 ## 4. Dispatch under the execution contract

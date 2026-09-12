@@ -126,5 +126,31 @@ class TestCliReference(unittest.TestCase):
         self.assertIn("ask the user", blocked)
 
 
+CONTRACT = HERD / "references" / "execution-contract.md"
+REPORT_LINE = "herd-report <worker> task <n>: commit <sha>, evidence <path>, deviations: <text|none>"
+
+
+class TestContract(unittest.TestCase):
+    def setUp(self):
+        self.body = CONTRACT.read_text()
+
+    def test_review_gate_rule_present(self):
+        self.assertIn("Stop after every task", self.body)
+        self.assertIn("Do not start the next task until", self.body)
+
+    def test_report_format_is_exact(self):
+        self.assertIn(REPORT_LINE, self.body)
+
+    def test_rejected_work_fixed_on_top(self):
+        self.assertIn("fix on top", self.body)
+        self.assertIn("never rewrite", self.body)
+
+    def test_lead_pane_slot(self):
+        self.assertIn("LEAD_PANE", self.body)
+
+    def test_preapproved_prompts_slot(self):
+        self.assertIn("<pre-approved prompts", self.body)
+
+
 if __name__ == "__main__":
     unittest.main()

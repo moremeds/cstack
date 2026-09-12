@@ -40,7 +40,7 @@ prompt first. Native flags from the roster's `args` go after `--`:
 
 ```bash
 P=$(herdr pane split --current --direction right --cwd "$PWD" --no-focus | jq -r .result.pane.pane_id)
-herdr pane wait-output "$P" --regex '[$%❯>] ?$' --timeout 15000
+herdr pane wait-output "$P" --regex '[$%❯>]( .*)?$' --timeout 15000
 herdr agent start implementer --kind devin --pane "$P" --timeout 60000 -- --permission-mode auto
 herdr agent wait implementer --until idle --timeout 60000
 ```
@@ -68,7 +68,18 @@ herdr agent prompt implementer "$(cat "$SP/assign-implementer.md")" --wait --tim
 `--wait` returns on the first settled `idle`/`done`/`blocked`. It returns
 `agent_prompt_stalled` if no `working` activity is seen within five seconds
 of submission; that does not prove the prompt was lost. Inspect before
-resending.
+resending. One known loss: a CLI's first-run welcome screen (seen with
+Devin) swallows the first prompt; if `agent read` shows the welcome and an
+empty input line, resend once.
+
+A wait ends at its timeout with the agent still `working`; that is not a
+failure. A full test gate can outrun any single timeout, so loop:
+
+```bash
+until herdr agent wait implementer --until done --timeout 600000; do
+  herdr agent get implementer | grep -q '"working"' || break
+done
+```
 
 ## Collect
 
@@ -83,7 +94,10 @@ read the file. Fallback only; never request file output up front.
 ## Reverse channel (worker → lead)
 
 Every managed pane has `$HERDR_PANE_ID`. Put the lead's id in the assignment
-as `LEAD_PANE`, and the worker reports without being polled:
+as `LEAD_PANE`, and the worker reports without being polled. Same server
+only: a worker on another machine cannot reach the lead's pane, so its
+contract says to write the report line to a file and the lead collects it
+with `--wait` plus `ssh <machine> cat <file>`.
 
 ```bash
 herdr agent prompt $LEAD_PANE "herd-report implementer task 3: commit abc123, evidence docs/evidence/t3.md, no deviations"

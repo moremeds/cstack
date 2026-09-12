@@ -16,10 +16,14 @@ The lead is herdr pane `LEAD_PANE=<pane id>`.
    ledgers, production config>.
 3. Environment. Commands run only in <allowed dirs>; temp files under
    <temp dir>. No network calls except <list|none>.
-4. Evidence. Every task leaves `<evidence dir>/t<n>.md` with the exact
-   commands run, exit codes, and pasted output the reviewer can re-run.
+4. Evidence. Every task leaves `<evidence dir>/t<n>.md`, or appends a
+   `## Task <n>` section to the plan's own evidence file when the plan names
+   one, with the exact commands run, exit codes, and pasted output the
+   reviewer can re-run.
 5. Commits. One commit per task, message `task <n>: <plan title>`. No
-   attribution trailers.
+   attribution trailers: no `Co-Authored-By`, no `Generated with`. Workers
+   add these by default, so this rule is repeated in every dispatch and
+   the gate rejects a commit that carries one.
 6. Review gate. Stop after every task. Report with exactly one line:
    herd-report <worker> task <n>: commit <sha>, evidence <path>, deviations: <text|none>
    sent as: herdr agent prompt $LEAD_PANE "<that line>"

@@ -78,5 +78,53 @@ class TestRoster(unittest.TestCase):
         self.assertNotIn("peer", self.doc)
 
 
+CLI_REF = HERD / "references" / "herdr-cli.md"
+HERDR_VERBS = {
+    "agent list", "agent get", "agent read", "agent send-keys", "agent prompt",
+    "agent rename", "agent wait", "agent start", "agent explain",
+    "pane split", "pane run", "pane wait-output", "pane read", "pane layout", "pane close",
+    "workspace list", "machine list", "integration status", "integration install",
+    "status",
+}
+VERB_RE = re.compile(r"herdr ((?:agent|pane|workspace|machine|integration) [a-z-]+|status)\b")
+
+
+def cited_verbs(text):
+    return set(VERB_RE.findall(text))
+
+
+class TestCliReference(unittest.TestCase):
+    def setUp(self):
+        self.body = CLI_REF.read_text()
+
+    def test_pinned_to_a_version(self):
+        self.assertRegex(self.body, r"herdr 0\.9\.0")
+
+    def test_every_cited_verb_exists(self):
+        unknown = cited_verbs(self.body) - HERDR_VERBS
+        self.assertEqual(unknown, set(), f"verbs not in herdr 0.9.0: {unknown}")
+
+    def test_hyphenated_subcommands(self):
+        for bad in ("send_keys", "wait_output", "sendkeys"):
+            self.assertNotIn(bad, self.body)
+
+    def test_reverse_channel_documented(self):
+        """The worker prompts the lead's pane; herdr's own docs never say so."""
+        self.assertIn("HERDR_PANE_ID", self.body)
+        self.assertRegex(self.body, r"agent prompt \S*\$?\{?LEAD", )
+
+    def test_waits_for_shell_prompt_before_start(self):
+        self.assertIn("agent_pane_busy", self.body)
+        self.assertLess(self.body.index("pane wait-output"), self.body.index("agent start implementer"))
+
+    def test_restart_after_rule_change(self):
+        self.assertIn("inject their rules at startup", self.body)
+
+    def test_blocked_is_not_auto_answered(self):
+        blocked = self.body[self.body.index("## blocked"):]
+        self.assertNotIn("send-keys reviewer y", blocked)
+        self.assertIn("ask the user", blocked)
+
+
 if __name__ == "__main__":
     unittest.main()

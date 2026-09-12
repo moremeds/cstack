@@ -1,0 +1,27 @@
+# herd.example.toml — herdr workers this repo's lead may drive.
+# Copy to <repo>/herd.toml and edit. Peer sessions are NOT listed here:
+# every live session under ~/projects is a peer, found with ListAgents.
+
+[[worker]]
+name = "reviewer"               # herdr live-agent name: [a-z][a-z0-9_-]{0,31}
+kind = "cursor"                 # a kind from `herdr agent` help
+role = "cross-lineage reviewer, read-only"
+machine = "local"               # "local" or a label from `herdr machine list`
+# passed after `--` to `herdr agent start`; --force = auto-approve commands
+# (cursor-agent --help), otherwise the first shell command blocks the worker
+args = ["--force", "--model", "cursor-grok-4.6-high"]
+
+[[worker]]
+name = "implementer"
+kind = "devin"
+role = "scoped implementation with tests, one plan task per dispatch"
+machine = "local"
+# "auto" auto-approves read-only tools only (devin --help); edits still block
+# and are answered under the execution contract
+args = ["--permission-mode", "auto"]
+
+[[worker]]
+name = "bench"
+kind = "codex"
+role = "run benchmarks on the remote box, report numbers only"
+machine = "gpu-box"

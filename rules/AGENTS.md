@@ -33,6 +33,9 @@
   and acceptance criteria; request concise findings with evidence references rather
   than raw dumps. Batch independent work; keep dependent or overlapping edits
   sequential. If native subagents are unavailable, continue locally and disclose it.
+- Use `herd` instead when a worker must outlive one task, live in another
+  repo's session, or run on another model or machine; it adds the transport
+  choice and a per-task review gate on top of `orchestrate`'s team design.
 
 ## Authorization and data protection
 

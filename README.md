@@ -4,11 +4,11 @@
 
 **C**laude Code · **C**odex · **C**ursor · **C**henxi
 
-**Five skills for orchestrating, reviewing, executing, and understanding agent work.**
+**Six skills for orchestrating, reviewing, executing, and understanding agent work.**
 
 ![license](https://img.shields.io/badge/license-MIT-black)
 ![runtimes](https://img.shields.io/badge/runtimes-Claude%20Code%20%C2%B7%20Codex-black)
-![skills](https://img.shields.io/badge/skills-5-black)
+![skills](https://img.shields.io/badge/skills-6-black)
 ![tests](https://img.shields.io/badge/tests-mutation--checked-black)
 
 </div>
@@ -20,16 +20,17 @@
 | When you need to… | Use |
 | --- | --- |
 | let Astra design and coordinate a task-specific agent team | `$orchestrate <task>` |
+| drive long-lived workers across sessions, models, and machines | `$herd <task>` |
 | find out what is actually happening | `/whatup` |
 | execute an already-approved plan | `/execute-plan <plan-path>` |
 | review, fix, and re-verify an artifact | `/review-cycle <target>` |
 | get an independent cross-model review | `/tribunal-review <target>` |
 
-cstack is a Claude Code and Codex skills plugin. The five skills install
+cstack is a Claude Code and Codex skills plugin. The six skills install
 together and share source files. `orchestrate` requires a host with native
 subagents and access to Astra; installing the plugin does not supply those capabilities.
 
-## The five skills
+## The six skills
 
 ### `orchestrate`
 
@@ -61,6 +62,19 @@ requesting Sol/medium and Luna/low, and both returned results. Their feedback
 closed the ownership-transfer and nested-tool gaps. Returned metadata did not
 independently identify the serving model/effort, so these remain requested
 settings, not a latency benchmark or a guarantee about every runtime.
+
+### `herd`
+
+```text
+$herd <task or approved plan>
+```
+
+The lead picks a transport per worker: a same-provider peer session for
+work that belongs to another live repo, a herdr agent for another model or
+machine, a native subagent for disposable labor. Persistent workers run
+under an execution contract with a per-task review gate. Requires
+[herdr](https://herdr.dev) for the herdr transport; the other two work
+without it.
 
 ### `whatup`
 
@@ -212,7 +226,7 @@ lost the thread ─────────────────────�
 /plugin install cstack@cstack
 ```
 
-This installs all five skills together, plus the shared Claude Code commands
+This installs all six skills together, plus the shared Claude Code commands
 and hooks.
 
 ### From a checkout
@@ -240,7 +254,7 @@ evidence. Hook checks are best-effort helpers, not a complete security boundary.
 ## What else is in the repo?
 
 ```text
-skills/    the plugin       orchestrate, execute-plan, review-cycle, tribunal-review, whatup
+skills/    the plugin       orchestrate, herd, execute-plan, review-cycle, tribunal-review, whatup
 rules/     standing rules   maintainer defaults for Claude Code and Codex
 hooks/     hard guardrails  block or rewrite selected Claude Code tool calls
 commands/  entry points     small shared Claude Code commands

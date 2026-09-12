@@ -202,5 +202,26 @@ class TestSkill(unittest.TestCase):
         self.assertLessEqual(self.body.count("\n"), 250)
 
 
+README = ROOT / "README.md"
+MANIFESTS = [ROOT / ".claude-plugin" / "plugin.json", ROOT / ".codex-plugin" / "plugin.json"]
+RULES = [ROOT / "rules" / "AGENTS.md", ROOT / "rules" / "CLAUDE.md"]
+
+
+class TestRegistration(unittest.TestCase):
+    def test_readme_lists_six_skills(self):
+        body = README.read_text()
+        self.assertIn("`$herd <task>`", body)
+        self.assertNotIn("five skills", body)
+        self.assertIn("six skills", body)
+
+    def test_manifests_name_herd(self):
+        for m in MANIFESTS:
+            self.assertIn("herd", m.read_text(), m.name)
+
+    def test_rules_route_to_herd(self):
+        for r in RULES:
+            self.assertIn("`herd`", r.read_text(), r.name)
+
+
 if __name__ == "__main__":
     unittest.main()

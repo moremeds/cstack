@@ -1,0 +1,23 @@
+# herd.toml — herdr workers this repo's lead may drive. See cstack/skills/herd.
+# Peer sessions are not listed: every live session under ~/projects is a peer.
+
+[[worker]]
+name = "reviewer"
+kind = "cursor"
+role = "cross-lineage reviewer, read-only"
+machine = "local"
+args = ["--force", "--model", "cursor-grok-4.6-high"]
+
+[[worker]]
+name = "implementer"
+kind = "devin"
+role = "scoped implementation with tests, one plan task per dispatch"
+machine = "local"
+args = ["--permission-mode", "auto"]
+
+[[worker]]
+name = "mini-runner"
+kind = "devin"
+role = "run and verify on the production box; read-only unless the plan says otherwise"
+machine = "macmini"            # `herdr machine list`; control via: ssh macmini herdr agent ...
+args = ["--permission-mode", "auto"]

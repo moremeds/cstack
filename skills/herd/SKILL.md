@@ -56,6 +56,13 @@ Rules that hold across all three:
   adopted worker whose pane sits in another repo is the wrong worker for
   it: Devin scopes its allow rules per project, so every command class in
   the worktree re-prompts.
+- Files are the unit of separation. Owned globs of concurrent workers
+  never overlap; files more than one task needs (an index, shared types,
+  a changelog) belong to the lead and are edited only by the lead. A commit
+  touching another worker's files is rejected whole. Merge conflicts
+  therefore appear only when the lead integrates the branches, and the
+  lead resolves them there; a worker is never asked to rebase onto work it
+  cannot see.
 
 ## 3. Discover and adopt herdr workers
 
@@ -127,6 +134,21 @@ If `herdr agent prompt` returns `agent_blocked`, or a wait ends `blocked`:
 ask what to answer. Answer only prompts the contract pre-approved. Devin's
 approval menu has been observed while herdr reported `done`, so on `done`
 read the pane before concluding the turn finished.
+
+A worker that died is resumed, not replaced. Seen with Devin:
+`Agent error: Connection error` kills the CLI mid-task and herdr may show
+`idle` or `unknown` with no report. Its partial writes are still in the
+worktree: run `git -C <worktree> status --short` and `git log -1`, then
+re-prompt the same worker with the same task and the line "partial work
+from the interrupted attempt is in the worktree; continue, do not
+restart". Reassigning to another worker means transferring the worktree,
+never a fresh clone.
+
+Exit 0 with nothing written is blocked, not done. A CLI in non-interactive
+mode (`devin -p`, `claude -p`) that hits a permission prompt prints
+"rejected a tool call that requires confirmation" and exits 0 with no
+diff. Treat "no commit and that text in the output" as `blocked`; an empty
+diff alone is not evidence the task had nothing to do.
 
 ## 6. Integrate and accept
 

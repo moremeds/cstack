@@ -41,7 +41,9 @@ The lead is herdr pane `LEAD_PANE=<pane id>`.
 8. Blocked. You were started with read-only commands pre-approved. For any
    other permission prompt, stop and wait; the lead answers only prompts
    listed here: <pre-approved prompts, e.g. "edit files under src/">, and
-   everything else goes to the user.
+   everything else goes to the user. A worker is never started with a
+   bypass/dangerous permission mode unless the user approved it for
+   this specific run; the roster's `args` is not that approval.
 9. Deviations. Any step you could not do as written is a deviation. Name it
    in the report line; do not silently substitute.
 ```

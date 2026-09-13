@@ -80,13 +80,31 @@ class TestRoster(unittest.TestCase):
 
 CLI_REF = HERD / "references" / "herdr-cli.md"
 HERDR_VERBS = {
-    "agent list", "agent get", "agent read", "agent send-keys", "agent prompt",
-    "agent rename", "agent wait", "agent start", "agent explain",
-    "pane split", "pane run", "pane wait-output", "pane read", "pane layout", "pane close",
-    "workspace list", "machine list", "machine add", "integration status", "integration install",
+    "agent list",
+    "agent get",
+    "agent read",
+    "agent send-keys",
+    "agent prompt",
+    "agent rename",
+    "agent wait",
+    "agent start",
+    "agent explain",
+    "pane split",
+    "pane run",
+    "pane wait-output",
+    "pane read",
+    "pane layout",
+    "pane close",
+    "workspace list",
+    "machine list",
+    "machine add",
+    "integration status",
+    "integration install",
     "status",
 }
-VERB_RE = re.compile(r"herdr ((?:agent|pane|workspace|machine|integration) [a-z-]+|status)\b")
+VERB_RE = re.compile(
+    r"herdr ((?:agent|pane|workspace|machine|integration) [a-z-]+|status)\b"
+)
 
 
 def cited_verbs(text):
@@ -111,17 +129,23 @@ class TestCliReference(unittest.TestCase):
     def test_reverse_channel_documented(self):
         """The worker prompts the lead's pane; herdr's own docs never say so."""
         self.assertIn("HERDR_PANE_ID", self.body)
-        self.assertRegex(self.body, r"agent prompt \S*\$?\{?LEAD", )
+        self.assertRegex(
+            self.body,
+            r"agent prompt \S*\$?\{?LEAD",
+        )
 
     def test_waits_for_shell_prompt_before_start(self):
         self.assertIn("agent_pane_busy", self.body)
-        self.assertLess(self.body.index("pane wait-output"), self.body.index("agent start implementer"))
+        self.assertLess(
+            self.body.index("pane wait-output"),
+            self.body.index("agent start implementer"),
+        )
 
     def test_restart_after_rule_change(self):
         self.assertIn("inject their rules at startup", self.body)
 
     def test_blocked_is_not_auto_answered(self):
-        blocked = self.body[self.body.index("## blocked"):]
+        blocked = self.body[self.body.index("## blocked") :]
         self.assertNotIn("send-keys reviewer y", blocked)
         self.assertIn("ask the user", blocked)
 
@@ -151,6 +175,9 @@ class TestContract(unittest.TestCase):
     def test_preapproved_prompts_slot(self):
         self.assertIn("<pre-approved prompts", self.body)
 
+    def test_bypass_needs_approval_for_this_run(self):
+        self.assertIn("this specific run", self.body)
+
 
 SKILL = HERD / "SKILL.md"
 
@@ -163,10 +190,14 @@ class TestSkill(unittest.TestCase):
         self.assertTrue(self.body.startswith("---\nname: herd\n"))
 
     def test_three_transports_in_decision_order(self):
-        sec = self.body[self.body.index("## 2. Choose a transport"):]
-        sec = sec[:sec.index("## 3.")]
-        order = [sec.index(k) for k in ("peer session", "herdr agent", "native subagent")]
-        self.assertEqual(order, sorted(order), "decision order is peer → herdr → native")
+        sec = self.body[self.body.index("## 2. Choose a transport") :]
+        sec = sec[: sec.index("## 3.")]
+        order = [
+            sec.index(k) for k in ("peer session", "herdr agent", "native subagent")
+        ]
+        self.assertEqual(
+            order, sorted(order), "decision order is peer → herdr → native"
+        )
 
     def test_gate_falls_back_to_orchestrate(self):
         self.assertIn('test "${HERDR_ENV:-}" = 1', self.body)
@@ -197,7 +228,7 @@ class TestSkill(unittest.TestCase):
         self.assertIn("read-only scout", self.body)
 
     def test_panes_are_kept(self):
-        tear = self.body[self.body.index("## 7. Teardown"):]
+        tear = self.body[self.body.index("## 7. Teardown") :]
         self.assertNotIn("closed only when", tear)
         self.assertIn("never the lead's", tear)
 
@@ -214,9 +245,21 @@ class TestSkill(unittest.TestCase):
     def test_under_250_lines(self):
         self.assertLessEqual(self.body.count("\n"), 250)
 
+    def test_files_are_unit_of_separation(self):
+        self.assertIn("never overlap", self.body)
+
+    def test_dead_worker_is_resumed(self):
+        self.assertIn("resumed, not replaced", self.body)
+
+    def test_silent_rejection_is_blocked(self):
+        self.assertIn("rejected a tool call", self.body)
+
 
 README = ROOT / "README.md"
-MANIFESTS = [ROOT / ".claude-plugin" / "plugin.json", ROOT / ".codex-plugin" / "plugin.json"]
+MANIFESTS = [
+    ROOT / ".claude-plugin" / "plugin.json",
+    ROOT / ".codex-plugin" / "plugin.json",
+]
 RULES = [ROOT / "rules" / "AGENTS.md", ROOT / "rules" / "CLAUDE.md"]
 
 

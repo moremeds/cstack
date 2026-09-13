@@ -36,7 +36,9 @@ each role, in this order:
 
 Rules that hold across all three:
 
-- `ListAgents` first; never message a session whose status is `working`.
+- `ListAgents` on initial discovery; thereafter use the known worker name and
+  fetch its current status before dispatch. Rediscover after a missing worker
+  or topology change; never message a session whose status is `working`.
 - Ground truth travels with the assignment: when a task depends on another
   machine's or repo's state, dispatch a read-only scout first (a
   `mini-runner`-style worker) and attach its evidence, or name the exact
@@ -95,6 +97,13 @@ them. Then, all workers in parallel:
 - herdr agent: `herdr agent prompt <name> "<assignment>" --wait --timeout <ms>`,
   backgrounded.
 - native subagent: the host's spawn tool, `model` set explicitly.
+
+Prefer the worker's `herd-report` reverse channel over polling terminal output.
+For status, return only the worker name, status, and state-change sequence;
+retain errors. Read a short terminal tail only for a blocked/ambiguous state
+or the required completion check, expanding when it lacks needed context.
+Keep raw evidence intact; inspect relevant file sections rather than repeatedly
+loading the terminal history. See `references/herdr-cli.md` for examples.
 
 ## 5. Review gate
 

@@ -15,12 +15,24 @@ herdr status | grep -q 'endpoint_compatible: yes'
 ## Discover
 
 ```bash
-herdr agent list                       # JSON: .result.agents[] {agent, agent_status, pane_id, cwd}
+herdr agent list                       # initial discovery; JSON: .result.agents[] {agent, agent_status, pane_id, cwd}
 herdr agent get <name|pane>            # one agent
 herdr agent explain <name|pane>        # why herdr thinks it is in that state
 herdr integration status               # which kinds report lifecycle natively
 herdr machine list --json              # saved SSH profiles; empty is normal
 ```
+
+After discovery, use the known worker name. For routine status, project the
+JSON locally instead of returning unrelated pane metadata to the model:
+
+```bash
+set -o pipefail
+herdr agent get implementer | jq '{name: .result.agent.name, status: .result.agent.agent_status, seq: .result.agent.state_change_seq, error: .error}'
+```
+
+Keep stderr and failure status visible. Rediscover if the worker is missing or
+the topology changed. The sequence is a lifecycle hint, not a terminal-output
+cursor; an unchanged value does not prove there is no new output.
 
 States: `idle` | `working` | `blocked` | `done` | `unknown`. `idle` and
 `done` both accept input. `unknown` proves nothing.
@@ -72,20 +84,24 @@ resending. One known loss: a CLI's first-run welcome screen (seen with
 Devin) swallows the first prompt; if `agent read` shows the welcome and an
 empty input line, resend once.
 
-A wait ends at its timeout with the agent still `working`; that is not a
-failure. A full test gate can outrun any single timeout, so loop:
-
-```bash
-until herdr agent wait implementer --until done --timeout 600000; do
-  herdr agent get implementer | grep -q '"working"' || break
-done
-```
+Prefer the reverse-channel report below while doing independent work. If the
+host supports background tool execution, let the wait remain pending there;
+do not use repeated one-second waits and status reads to simulate polling.
+Use a bounded wait when a status is needed. A timeout while still `working`
+is not failure or permission to resend. On `done`, still read a short tail to
+check for a hidden approval menu before concluding completion.
 
 ## Collect
 
 ```bash
-herdr agent read implementer --source recent-unwrapped --lines 200
+herdr agent read implementer --source recent-unwrapped --lines 20
 ```
+
+Read only for a blocked/ambiguous state or completion check. Start short;
+expand to enough lines to understand the error or full approval question.
+Never truncate a permission question into an automatic approval. Terminal
+chrome and repeated history are not progress evidence. Use reported artifact
+paths and targeted file reads for detailed review; retain the raw originals.
 
 If more `--lines` reveals nothing (alternate screen), ask the worker to write
 its full reply to a file under `$SP/` and answer with the path only, then
@@ -112,7 +128,7 @@ per-task reports under the execution contract.
 
 ```bash
 herdr agent get implementer
-herdr agent read implementer --source recent-unwrapped --lines 80
+herdr agent read implementer --source recent-unwrapped --lines 20
 ```
 
 Show the dialog to the user and ask the user what to answer. Only when the

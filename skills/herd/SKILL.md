@@ -217,6 +217,16 @@ the lead must verify material issues and the final cumulative result itself.
 
 ## 7. Teardown
 
+Before closing a pane, save a per-worker handoff in the existing task notes:
+agent name and pane/session id, requested/observed model (mark unknowns), assigned
+task, work actually performed, result and lead disposition, evidence paths,
+remaining issues, and reason for closing. Include unused/failed workers with
+"no work" or their failure; do not report only the successful reviewers.
+The lead must be able to explain each subagent/model's contribution from this
+record after closure, without reopening its context. Include a concise per-worker
+account in the completion report. If the record is insufficient, collect the
+missing information before closing. Use the same handoff for native workers.
+
 Keep a pane while an outstanding task, fix, review or handoff needs its context.
 Once the lead has all necessary information and has accepted the worker's
 handoff, save results and needed evidence, check for unsaved work and pending

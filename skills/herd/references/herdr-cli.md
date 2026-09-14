@@ -65,9 +65,13 @@ example applies only when the main pane will remain readable:
 ```bash
 P=$(herdr pane split --current --direction right --cwd "$PWD" --no-focus | jq -r .result.pane.pane_id)
 herdr pane wait-output "$P" --regex '[$%❯>]( .*)?$' --timeout 15000
-herdr agent start implementer --kind devin --pane "$P" --timeout 60000 -- --permission-mode auto
+herdr agent start implementer --kind devin --pane "$P" --timeout 60000 -- --model swe-2-max --permission-mode accept-edits --sandbox
 herdr agent wait implementer --until idle --timeout 60000
 ```
+
+For restricted tribunal reviewers, append `--add-dir <seat-input-dir>` to the
+roster args at `herdr agent start`. This directory is prepared per review;
+its path does not belong in the static roster. See tribunal's herd-panel reference.
 
 All CLIs inject their rules at startup. After a bootstrap or rules change,
 an adopted worker is running on the old rules. Keep its pane and context and
@@ -119,7 +123,8 @@ paths and targeted file reads for detailed review; retain the raw originals.
 
 If more `--lines` reveals nothing (alternate screen), ask the worker to write
 its full reply to a file under `$SP/` and answer with the path only, then
-read the file. Fallback only; never request file output up front.
+read the file. Fallback only; never request file output up front. Read-only
+reviewers must instead repeat the complete response for lead-side collection.
 
 ## Reverse channel (worker → lead)
 
@@ -145,19 +150,26 @@ herdr agent get implementer
 herdr agent read implementer --source recent-unwrapped --lines 20
 ```
 
-Show the dialog to the user and ask the user what to answer. Only when the
-execution contract pre-approves that exact prompt may the lead answer it
+For a prompt outside the task's existing authorization, show the dialog and
+ask the user what to answer. When the execution contract already authorizes
+that prompt, the lead answers without asking again
 with `herdr agent send-keys implementer <key>`. Devin's menus are numbered
 (`1` = approve once), so a pre-approved answer is `send-keys implementer 1 enter`.
-Prefer starting the worker with the roster's approval flag so read-only
-commands never block at all.
+For writers, translate the task's existing authorization into scoped permission
+rules or answer matching prompts without asking the user again. Use Devin's
+`--permission-mode accept-edits` when workspace edits are authorized; it does
+not preapprove every shell command. Keep `auto` for read-only work. Reviewers
+use their own restrictive mode, never an implementation bypass flag.
 
 ## Teardown
 
-There is none. A worker pane holds context the next dispatch re-adopts by
-name; the lead never runs `herdr pane close` on a worker. The verb exists
-for the user's own tidying. Do not exit its agent after task completion;
-retain the session until the user explicitly says its context is no longer needed.
+Apply herd's teardown check: retain contexts needed by an outstanding task,
+fix, review or handoff. Once the lead has all necessary information, accepts
+the handoff, and saves needed evidence, close panes created for this task with
+`herdr pane close <pane_id>` if no concrete follow-up needs their context. No extra confirmation
+is needed for that cleanup. Inspect state, unsaved work and pending requests
+first; idle/timeout alone is insufficient. Do not close pre-existing/adopted
+panes without explicit authority. Never stop the server.
 
 ## Safety (from herdr's own skill file, verbatim in spirit)
 

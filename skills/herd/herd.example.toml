@@ -7,18 +7,30 @@ name = "reviewer"               # herdr live-agent name: [a-z][a-z0-9_-]{0,31}
 kind = "cursor"                 # a kind from `herdr agent` help
 role = "cross-lineage reviewer, read-only"
 machine = "local"               # "local" or a label from `herdr machine list`
-# passed after `--` to `herdr agent start`; --force = auto-approve commands
-# (cursor-agent --help), otherwise the first shell command blocks the worker
-args = ["--force", "--model", "cursor-grok-4.6-high"]
+# Reviewer mode; never inherit an implementation worker's --force flag.
+args = ["--mode", "ask", "--model", "cursor-grok-4.6-high"]
+
+[[worker]]
+name = "review-fable"
+kind = "claude"
+role = "independent read-only peer for an Astra lead"
+machine = "local"
+args = ["--model", "fable", "--restricted", "--strict-mcp-config", "--tools", "Read,Grep,Glob"]
+
+[[worker]]
+name = "review-astra"
+kind = "codex"
+role = "independent read-only peer for a Claude Fable lead"
+machine = "local"
+args = ["--model", "gpt-6-astra", "--sandbox", "read-only"]
 
 [[worker]]
 name = "implementer"
 kind = "devin"
 role = "scoped implementation with tests, one plan task per dispatch"
 machine = "local"
-# "auto" auto-approves read-only tools only (devin --help); edits still block
-# and are answered under the execution contract
-args = ["--permission-mode", "auto"]
+# Use only for an approved implementation task; edits stay in the workspace.
+args = ["--model", "swe-2-max", "--permission-mode", "accept-edits", "--sandbox"]
 # command classes the lead may approve on the user's behalf when a dialog
 # appears; everything else goes to the user. Absent = nothing pre-approved.
 preapproved = ["ls", "cat", "find", "du", "stat", "head", "wc", "git log", "git status"]

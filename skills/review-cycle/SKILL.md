@@ -20,7 +20,7 @@ Claude Code: `/review-cycle [quick] [target] [focus text...]`
 
 Codex: `$review-cycle [quick] [target] [focus text...]`
 
-- `quick` (optional, first token) → abbreviated cycle: Pass 1 + a single non-debated tribunal pass (passed through to `tribunal-review` as its own `quick` modifier) + Pass 5 assumption check. Skips Pass 3 (adversarial), Pass 3b (simplicity), Pass 4, and the Pass 6 acceptance check; Pass 1's standing-rule check is still required. Use when an independent review is warranted but the additional full-cycle passes are not. Omit for the full cycle (default).
+- `quick` (optional, first token) → abbreviated cycle: Pass 1 + a single non-debated tribunal pass (passed through to `tribunal-review` as its own `quick` modifier) + Pass 5 assumption and acceptance check. Skips Pass 3 (adversarial), Pass 3b (simplicity), nominal Pass 4, and Pass 6; Pass 5 still performs the lead's final cumulative read and verifies the current artifact after fixes. Use when an independent review is warranted but the additional full-cycle passes are not. Omit for the full cycle (default).
 - `target` (optional):
   - No arg → review the **current branch's diff vs the repo's default base branch**.
   - A path → review **that plan/spec/doc/prose file** for adequacy before implementation or publication.
@@ -63,7 +63,9 @@ When invoked from a parent tracker (for example `execute-plan`), reuse the
 parent tracker instead of replacing it. Keep the parent review gate as the
 container, preserve its other milestones, and make only the current review pass
 the one `in_progress` item. Mark skipped quick-mode passes explicitly rather
-than silently deleting them. If a gate fails, fix it within scope or report the concrete blocker; do not
+than silently deleting them. Delegated investigation or fixing stays inside the
+same parent scope and tracker; it does not create a parallel workflow. If a gate
+fails, fix it within scope or report the concrete blocker; do not
 wait for permission to stop a genuinely blocked review.
 
 **Why per-pass apply matters:** the tribunal and the adversarial pass are most valuable on a *clean* artifact. Batching all fixes into one big apply step at the end means they waste cycles on bugs you already caught. Apply between passes → each later pass sees less noise and finds deeper issues.
@@ -75,6 +77,37 @@ wait for permission to stop a genuinely blocked review.
 - **Apply high-confidence fixes immediately**: clear bugs, spec violations, typos, missing edge cases the spec called out, broken cross-layer wiring (API ↔ types ↔ UI ↔ DB), factual errors (prose).
 - **Defer judgment-call fixes** until after the Pass 2 tribunal weighs in: architecture pushes, scope changes, taste calls, anything where you're unsure whether the change is an improvement.
 - **Track what you deferred** in your task list so Pass 2 can revisit them with the tribunal's input.
+
+### Lead ownership and optional Herd execution
+
+The lead owns the review, even when workers provide execution capacity:
+
+- `review-cycle` owns pass order, apply decisions, and verification. Delegation
+  does not transfer any of those responsibilities.
+- Before reading any external finding or worker report, the lead personally
+  reads the requirements, the complete artifact, affected callers, and relevant
+  tests, then records the initial Pass-1 findings in writing. Do not outsource
+  this primary review.
+- `tribunal-review` remains the only Pass-2 reviewer workflow and owns reviewer
+  selection. It delegates execution transport to `herd`; this skill does not
+  launch or manage reviewer CLIs.
+- Tribunal's required peer is Fable for an Astra lead and Astra for a Fable
+  lead. Do not downgrade or replace that peer; its absence or unverified model
+  identity leaves the independent gate open, even if Cursor answered.
+- After the lead's initial findings exist, `herd` may run a bounded
+  investigation, reproduce a claim, execute a check, or apply a fix the lead
+  has approved. The assignment names exclusive write paths, and neither the
+  lead nor another worker writes those paths until they return.
+- Review-cycle assignments are **no-commit**: workers return changed paths,
+  the diff, commands, results, and deviations. They never commit, deliver,
+  merge, or publish. This no-commit rule overrides Herd's normal delivery
+  contract for these assignments.
+- Devin SWE2 Max is execution-only: investigation, reproduction, checking, and
+  fixing. It is never seated as a reviewer and never supplies a verdict.
+
+Workers supply evidence, not acceptance. The lead personally verifies every
+material claim or reproduction, decides which fixes land, performs the final
+cumulative review, and accepts or rejects the evidence.
 
 ### Context discipline (all passes)
 
@@ -123,7 +156,8 @@ Record commands and pass/fail after changed code is verified; otherwise cite the
 ### Pass 1 — Self-review against the spec → apply → verify
 
 1. Identify the spec. If reviewing code, locate the matching plan (ask the user where it lives if unsure, or check the PR description). If reviewing a plan, the user's request plus any referenced design doc is the spec. If reviewing prose, the spec is factual accuracy plus whatever structural/style brief the user gave. If target is a PR, also pull `gh pr view --json title,body` as part of the spec — the PR's own stated intent.
-2. Read the spec and the artifact end-to-end.
+2. Personally read the spec, the artifact end-to-end, affected callers, and
+   relevant tests. Do not read external findings first.
 3. Produce a structured critique. Use the row matching the artifact type:
 
    | Type | Critique sections |
@@ -136,7 +170,9 @@ Record commands and pass/fail after changed code is verified; otherwise cite the
 4. List the concrete fixes. Tag each as **high-confidence** or **judgment-call** per the apply discipline above.
 5. **Apply** the high-confidence fixes. Keep the judgment-call list for Pass 2.
 6. **Verify** per the gates section.
-7. Record the Pass-1 fix list (applied + deferred) in your task notes so Pass 2 can cross-reference.
+7. Record the Pass-1 findings and fix list (applied + deferred) in your task
+   notes before invoking Pass 2 so the independent findings cannot anchor the
+   primary review.
 
 ### Pass 2 — Cross-model tribunal via `tribunal-review` → apply → verify
 
@@ -163,15 +199,25 @@ binaries are alive, how they are launched and waited on, how findings merge by
 weighted consensus, and what happens when one is missing. This skill's job is
 Pass 2's *inputs* (target, class, focus) and its *outputs* (what to apply).
 
-Then merge its verdict with your own Pass-1 list:
+Then assess its findings against your own Pass-1 list. Agreement prioritizes
+verification; it never decides the outcome:
 
 1. Read the tribunal's output. Cross-reference against your Pass-1 list:
    - **Tribunal flags something Pass 1 caught and you already fixed** → confirmation, no action.
-   - **Tribunal flags something Pass 1 caught but you deferred as judgment-call** → the tribunal's vote breaks the tie; apply unless you have a clear reason.
-   - **Tribunal-only finding** → evaluate; default to applying unless you have a clear reason.
-   - **Pass-1-only finding it missed** → flag the disagreement explicitly; apply anyway if you still believe it.
-2. **Apply** all scheduled fixes — both the tribunal's findings and the previously deferred Pass-1 judgment calls that its input has now resolved.
+   - **Tribunal flags something Pass 1 caught but you deferred as judgment-call** → verify the claim and make a reasoned accept/reject decision.
+   - **Tribunal-only finding** → treat it as a hypothesis; verify the cited artifact and a material reproduction or other direct evidence before accepting it.
+   - **Pass-1-only finding it missed** → flag the disagreement explicitly; apply only if the lead's evidence still supports it.
+   Record the reason for every accepted or rejected material finding. Panel
+   votes, confidence, and consensus do not break ties or justify default apply.
+2. **Apply** the fixes the lead accepts — both tribunal findings and previously
+   deferred Pass-1 judgment calls that the evidence has now resolved. The lead
+   owns the decision even when a Herd worker performs the edit.
 3. **Verify** per the gates section.
+
+Any applied fix creates a new artifact version. The tribunal's earlier verdict
+describes its reviewed snapshot and does not automatically approve that new
+version; later passes and the lead's final evidence check must assess the current
+artifact.
 
 **Verdict mapping.** `tribunal-review` reports `APPROVE` or `CHANGES NEEDED`;
 this cycle reports `SHIP` / `FIX-FIRST` / `NEEDS-REWORK`. They are not the same
@@ -250,7 +296,9 @@ cumulative diff *since* the tribunal ran, and say so if the answer is nothing.
 
 ### Pass 4 — Final self-review of the cumulative diff
 
-1. Re-read the **cumulative diff/artifact after Passes 1–3b** (not the original, not any single pass's slice). Confirm each fix landed where intended and no pass regressed an earlier one.
+This pass is lead-owned and cannot be delegated.
+
+1. Personally re-read the **cumulative diff/artifact after Passes 1–3b** (not the original, not any single pass's slice). Confirm each fix landed where intended and no pass regressed an earlier one.
 2. Re-check standing rules **from the target repo's own CLAUDE.md/AGENTS.md** — this skill does not hardcode any project's banned patterns or required tools. If the repo has none, note that explicitly rather than skipping silently.
 
 ### Pass 5 — Assumption verification (the gate)
@@ -262,7 +310,16 @@ Before declaring done, write out each assumption you've been carrying and the ev
 - "UI feature works" → opened in browser (or explicit "I cannot test UI" disclosure)
 - "Chapter's claim is accurate" → checked against the cited source ✅
 
-If any assumption is unverified, either verify it or surface it explicitly in the final report. In quick mode, also check acceptance criteria here: an unmet criterion blocks SHIP even when disclosed. Record the acceptance evidence in both modes. `quick` mode ends here.
+The lead performs this gate personally. Verify material worker and tribunal
+claims from the artifact, source, or a relevant reproduction; a worker report is
+not acceptance evidence by itself.
+
+If any assumption is unverified, either verify it or surface it explicitly in
+the final report. In quick mode, personally re-read the current cumulative
+artifact after all fixes, confirm no fix regressed an earlier result, re-check
+standing rules, and check every acceptance criterion here. An unmet criterion
+blocks SHIP even when disclosed. Record the acceptance evidence in both modes.
+`quick` mode ends here.
 
 ### Pass 6 — Acceptance closure
 
@@ -271,7 +328,8 @@ Resolve concrete blocking findings within scope; do not refactor or add tests
 merely to increase a subjective confidence score. If an acceptance check cannot
 run, name the missing evidence and keep the affected criterion unverified.
 Disclose non-blocking uncertainty separately from unmet acceptance criteria.
-Do not repeat successful checks without a relevant change or new concern.
+Do not repeat successful checks without a relevant change or new concern. The
+lead owns this closure; delegated execution evidence cannot declare acceptance.
 
 ## Final report format
 
@@ -283,7 +341,8 @@ its own row. "Skipped (quick mode)" and "not applicable — plan target, no
 runtime gates" are complete answers. Silence is not.
 
 **SHIP requires a complete ledger.** Required independent review must have an
-answered independent peer; a solo result cannot satisfy that gate. An unavailable
+answered, model-verified Fable/Astra peer as required above; Cursor alone or
+a solo result cannot satisfy that gate. An unavailable
 optional advisor does not block a panel that meets the requested independence.
 Pass 5 and the standing-rule check must run
 in every mode. Pass 6 must run in full mode; in quick mode, `skipped (quick mode)`
@@ -343,6 +402,7 @@ because you do not know that nothing is.
 
 - **Do not commit or deliver as part of review alone.** Return to the invoking
   execution workflow when one exists; standalone review does not imply delivery.
+  Herd workers used by this cycle follow the same no-commit boundary.
 - **Never skip the tribunal pass.** Not even when Pass 1 looked clean, and not in `quick` mode either — `quick` makes the tribunal cheaper (no debate, no rebuttal), it does not remove it. It must run against the *cleaned* post-Pass-1 artifact to be worth the spend.
 - **Never drive the external CLIs yourself.** No `codex exec`, no `gemini -p`, no `claude -p` from this skill — call `tribunal-review` and let it own them. In particular never poll a reviewer's output file in a `sleep`/`until` loop, never check availability with `which` or `command -v` (an installed binary can still be unlicensed or logged out — the skill probes for a live reply instead), and never `pkill -f "codex exec"`, which kills every unrelated Codex job on the machine. All three were real failure modes in this cycle's own logged history.
 - **Never declare done with unverified assumptions** — surface them in the final report instead.

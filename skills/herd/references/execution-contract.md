@@ -4,11 +4,22 @@ Paste this block, with the `<slots>` filled, at the top of the plan or
 assignment the worker receives. Lifted from the livewire notify-rewrite
 plan of 2026-09-12, generalized.
 
+For `tribunal-review` seats use its review-only contract instead. A parent
+workflow supplies the commit policy here; this template cannot grant delivery
+authority or override a no-commit review cycle.
+
 ```text
 ## Execution contract — read before Task 0
 
 You are worker `<name>` (kind `<kind>`), working in `<worktree path>`.
 The lead is herdr pane `LEAD_PANE=<pane id>`.
+Mode: <implementation | investigation | review-fix>.
+Commit policy: <task commit in repo style | no commits>.
+
+Before project edits, load the shared global rules, private overlay, applicable
+project rules, memory index and task skills. Report actual paths, cwd, model
+and task boundaries. Do not assume discovery proves loading. Do not invoke
+the parent workflow again or spawn further workers.
 
 1. Scope. Implement only the tasks in this plan, in order. Anything the
    plan does not name is out of scope; report it, do not do it.
@@ -20,14 +31,20 @@ The lead is herdr pane `LEAD_PANE=<pane id>`.
    the lead's summary of them: <e.g. `ssh macmini ls ~/.claude/projects`,
    `git -C <repo> log -1`, a fixture path>. Fetch before designing.
 3. Environment. Commands run only in <allowed dirs>; temp files under
-   <temp dir>. No network calls except <list|none>.
+   <temp dir>. No network calls except <list|none>. Within this approved task,
+   implement, test, debug and fix without asking about already-authorized
+   commands. Global approval boundaries still apply. A Git worktree is not
+   an OS sandbox and grants no access to external systems or unrelated data.
 4. Evidence. Every task leaves `<evidence dir>/t<n>.md`, or appends a
    `## Task <n>` section to the plan's own evidence file when the plan names
    one, with the exact commands run, exit codes, and pasted output the
    reviewer can re-run. A worker on another machine writes it to <remote
    path>; the lead copies it into the repo's evidence dir before accepting,
    and acceptance is not valid until that copy exists.
-5. Commits. One commit per task, message `task <n>: <plan title>`. No
+5. Commits. Follow the caller's commit policy. When commits are authorized,
+   commit the cohesive task using <repo-style message>. With no commits,
+   return the diff and evidence and report `commit none`; never stage or
+   commit just to satisfy this template. No push, PR, merge or deployment. No
    attribution trailers: no `Co-Authored-By`, no `Generated with`. Workers
    add these by default, so this rule is repeated in every dispatch and
    the gate rejects a commit that carries one.
@@ -36,10 +53,9 @@ The lead is herdr pane `LEAD_PANE=<pane id>`.
    sent as: herdr agent prompt $LEAD_PANE "<that line>"
    Do not start the next task until the lead replies `herd-continue <n+1>`.
 7. Rejections. If the lead replies `herd-reject <n>: <reason>`, fix on top
-   with a new commit and report again; never rewrite or amend the rejected
-   commit.
-8. Blocked. You were started with read-only commands pre-approved. For any
-   other permission prompt, stop and wait; the lead answers only prompts
+   under the same commit policy and report again; never rewrite or amend a
+   rejected commit, and preserve pre-existing work in no-commit mode.
+8. Blocked. For a permission prompt, the lead answers only prompts
    listed here: <pre-approved prompts, e.g. "edit files under src/">, and
    everything else goes to the user. A worker is never started with a
    bypass/dangerous permission mode unless the user approved it for
@@ -50,7 +66,10 @@ The lead is herdr pane `LEAD_PANE=<pane id>`.
 
 Reviewer checklist (the lead runs this on every `herd-report`):
 
-- commit maps to the plan task, nothing more
+- personally read the task changes and relevant callers/tests, not only the report
+- commit or no-commit diff maps to the plan task, nothing more
 - evidence file commands are real and re-runnable; re-run one
-- forbidden paths untouched (`git show --stat <sha>`)
+- forbidden paths untouched (inspect the complete diff and working-tree status,
+  including untracked files, not only `git show --stat <sha>`)
 - deviations either accepted in the reply or the task is rejected
+- record reasons for material findings; integrate and verify before acceptance

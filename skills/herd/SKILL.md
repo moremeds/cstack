@@ -82,11 +82,23 @@ herdr agent list
 
 - A roster worker already live and `idle`: adopt it by name
   (`herdr agent rename <pane> <name>`). Its context is the point; keep it.
-- Missing: split a sibling pane with `--no-focus`, wait for the shell prompt,
-  `herdr agent start … -- <args>`, wait for `idle`. Commands and JSON paths are
-  in `references/herdr-cli.md`.
+- Before creating a pane, inspect `herdr pane layout --current` and account
+  for existing pane count and available dimensions. Keep the lead's main pane
+  readable; do not repeatedly split it as minions accumulate. If space is
+  tight or readability cannot be verified, create a separate background tab
+  or workspace for the worker instead. Use `--no-focus` and check the resulting
+  layout; move a worker pane out if the main pane became too small.
+- Missing: create a persistent pane using that layout rule, wait for the shell
+  prompt,
+  `herdr agent start … --pane <pane> -- <args>`, wait for `idle`. Every herdr
+  minion must run interactively in a persistent pane, including remote workers.
+  Never substitute a one-shot/headless CLI invocation: its exit loses the live
+  context. CLI commands may control the pane, but must not replace it.
+  Commands and JSON paths are in `references/herdr-cli.md`.
 - Adopted after a rules or bootstrap change: the worker injected its rules at
-  startup and is stale; restart it, or ask the user to.
+  startup and is stale; retain its pane and context, and start a fresh worker
+  pane with the updated rules and the same layout rule. Restart the existing
+  session only when the user explicitly authorizes discarding its context.
 - `machine` other than `local`: run the same commands on that host over
   SSH (`ssh <machine> herdr agent …`; `herdr --remote` only attaches the TUI)
   and rediscover ids there, since ids and names are per server.
@@ -160,7 +172,10 @@ through `/tribunal-review`; `herd` does not replace it.
 
 Every worker pane is an independent, self-built context and the next
 dispatch re-adopts it by name. Panes are kept, created or adopted; closing
-one is the user's call, never the lead's. Never stop the herdr server.
+one is the user's call, never the lead's. Task completion, idle state, or a
+timeout is not permission to close a pane or exit its agent. Keep both until
+the user explicitly says that context is no longer needed. Never stop the
+herdr server.
 
 ## Non-goals (v1)
 

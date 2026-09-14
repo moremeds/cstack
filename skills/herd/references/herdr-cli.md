@@ -46,6 +46,8 @@ herdr agent rename w3:p2 reviewer
 ```
 
 Start a missing one in a sibling pane, keeping the user's focus and cwd. The
+worker runs interactively in that persistent pane; do not launch it through a
+one-shot/headless CLI command. This applies on remote hosts too. The
 new shell needs a moment to reach its prompt; `agent start` on a pane that is
 not yet an available shell fails with `agent_pane_busy`, so wait for the
 prompt first. Native flags from the roster's `args` go after `--`:
@@ -58,8 +60,9 @@ herdr agent wait implementer --until idle --timeout 60000
 ```
 
 All CLIs inject their rules at startup. After a bootstrap or rules change,
-an adopted worker is running on the old rules; restart it (close its pane
-if you created it, or ask the user) rather than assuming it caught up.
+an adopted worker is running on the old rules. Keep its pane and context and
+start a fresh sibling pane with the updated rules; restart the existing
+session only when the user explicitly authorizes discarding its context.
 
 Remote workers: `herdr machine add <ssh-target> --label <name>` once (it
 installs or checks herdr there and starts its server). Control commands run
@@ -142,7 +145,8 @@ commands never block at all.
 
 There is none. A worker pane holds context the next dispatch re-adopts by
 name; the lead never runs `herdr pane close` on a worker. The verb exists
-for the user's own tidying.
+for the user's own tidying. Do not exit its agent after task completion;
+retain the session until the user explicitly says its context is no longer needed.
 
 ## Safety (from herdr's own skill file, verbatim in spirit)
 

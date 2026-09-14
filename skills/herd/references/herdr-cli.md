@@ -45,12 +45,22 @@ Adopt an idle agent that already exists (keeps its context):
 herdr agent rename w3:p2 reviewer
 ```
 
-Start a missing one in a sibling pane, keeping the user's focus and cwd. The
+Before adding a worker, inspect `herdr pane layout --current`: consider pane
+count and dimensions, and preserve a readable main pane. Split only when space
+permits. Otherwise use `herdr tab create --cwd <worktree> --no-focus` or
+`herdr workspace create --cwd <worktree> --no-focus`, and discover the new pane
+with `herdr pane list --workspace <workspace_id>`. If readability is uncertain,
+use a separate tab. Check the resulting layout; if a split cramped the main
+pane, move the worker with `herdr pane move <pane_id> --new-tab --no-focus`.
+Moving preserves the running session; closing and recreating it does not.
+
+Start a missing one in the selected pane, keeping the user's focus and cwd. The
 worker runs interactively in that persistent pane; do not launch it through a
 one-shot/headless CLI command. This applies on remote hosts too. The
 new shell needs a moment to reach its prompt; `agent start` on a pane that is
 not yet an available shell fails with `agent_pane_busy`, so wait for the
-prompt first. Native flags from the roster's `args` go after `--`:
+prompt first. Native flags from the roster's `args` go after `--`. This split
+example applies only when the main pane will remain readable:
 
 ```bash
 P=$(herdr pane split --current --direction right --cwd "$PWD" --no-focus | jq -r .result.pane.pane_id)
@@ -61,8 +71,9 @@ herdr agent wait implementer --until idle --timeout 60000
 
 All CLIs inject their rules at startup. After a bootstrap or rules change,
 an adopted worker is running on the old rules. Keep its pane and context and
-start a fresh sibling pane with the updated rules; restart the existing
-session only when the user explicitly authorizes discarding its context.
+start a fresh worker pane with the updated rules and the same layout rule;
+restart the existing session only when the user explicitly authorizes
+discarding its context.
 
 Remote workers: `herdr machine add <ssh-target> --label <name>` once (it
 installs or checks herdr there and starts its server). Control commands run

@@ -117,9 +117,13 @@ discredits every other finding you make."
 
 ## Codex direct model selection
 
-Direct debate/rebuttal defaults to `gpt-6-astra` with `low` reasoning.
-`TRIBUNAL_CODEX_MODEL` can select another account-supported model; direct and
-CLI fallback use that same selection, both with `low` effort. The direct
+Legacy direct debate/rebuttal pins `gpt-6-astra` with `high` reasoning.
+Its Claude peer pins `claude-fable-5-1` (resolved from `claude --model fable`
+in the interactive `/status` view on 2026-09-14), including CLI fallback.
+These are explicit legacy-only calls; herd reviewers keep their live context
+and do not use direct completion or automatic model downgrade.
+`TRIBUNAL_CODEX_MODEL` is fixed by the transport, not an environment override;
+direct and CLI fallback use that same selection, both with `high` effort. The direct
 user-agent version is read from `codex --version`; it is omitted when unknown
 instead of inventing a client version. First-pass repository review continues
 to use the separate CLI launch in SKILL.md. Model availability must be verified

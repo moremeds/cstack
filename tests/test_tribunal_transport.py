@@ -154,13 +154,13 @@ printf 200
 """)
         out = pathlib.Path(self.tmp) / "codex.txt"
         r = run_fn("direct_codex", self._prompt("review this"), str(out),
-                   env={"HOME": str(self.home), "TRIBUNAL_CODEX_MODEL": ""}, path_prefix=str(self.bin))
+                   env={"HOME": str(self.home), "TRIBUNAL_CODEX_MODEL": "gpt-5.6-sol"}, path_prefix=str(self.bin))
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(out.read_text(), "ISSUE-1 real bug")
 
         request = json.loads((pathlib.Path(self.tmp) / "request.json").read_text())
         self.assertEqual(request["model"], "gpt-6-astra")
-        self.assertEqual(request["reasoning"], {"effort": "low"})
+        self.assertEqual(request["reasoning"], {"effort": "high"})
         self.assertIn("codex_cli_rs/0.153.4", (pathlib.Path(self.tmp) / "headers.txt").read_text())
 
     def test_a_stale_output_file_is_not_mistaken_for_this_run(self):
@@ -257,13 +257,17 @@ echo "from the cli" > "$out"
 
         args = (pathlib.Path(self.tmp) / "cli-args.txt").read_text().splitlines()
         self.assertEqual(args[args.index("-m") + 1], "gpt-6-astra")
-        self.assertEqual(args[args.index("-c") + 1], 'model_reasoning_effort="low"')
+        self.assertEqual(args[args.index("-c") + 1], 'model_reasoning_effort="high"')
 
 
 class TestClaudeSeat(StubbedPath):
     def test_text_blocks_are_joined_into_the_output_file(self):
         self._stub("curl", """
-for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done
+for a in "$@"; do
+  [ "$prev" = "-o" ] && out=$a
+  [ "$prev" = "--data-binary" ] && cp "${a#@}" "${a#@}.captured"
+  prev=$a
+done
 cat > "$out" <<'JSON'
 {"content":[{"type":"text","text":"ISSUE-1 "},{"type":"text","text":"real bug"}]}
 JSON
@@ -275,14 +279,19 @@ printf 200
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(out.read_text(), "ISSUE-1 real bug")
 
+        request = json.loads(pathlib.Path(str(out) + ".req.captured").read_text())
+        self.assertEqual(request["model"], "claude-fable-5-1")
+
     def test_non_200_falls_back_to_the_cli(self):
         self._stub("curl", 'for a in "$@"; do [ "$prev" = "-o" ] && out=$a; prev=$a; done\n: > "$out"\nprintf 401\n')
-        self._stub("claude", 'cat > /dev/null; echo "from the cli"\n')
+        self._stub("claude", f'printf "%s\\n" "$@" > "{self.tmp}/claude-args"\ncat > /dev/null; echo "from the cli"\n')
         out = pathlib.Path(self.tmp) / "claude.txt"
         r = run_fn("direct_claude", self._prompt("debate this"), str(out),
                    env={"CLAUDE_CODE_OAUTH_TOKEN": "stub"}, path_prefix=str(self.bin))
         self.assertEqual(out.read_text().strip(), "from the cli")
         self.assertIn("401", r.stderr)
+        args = (pathlib.Path(self.tmp) / "claude-args").read_text().splitlines()
+        self.assertEqual(args[args.index("--model") + 1], "claude-fable-5-1")
 
     def test_a_stale_output_file_is_not_mistaken_for_this_run(self):
         """Same trap as the Codex seat; the guard is per-function, so test both."""
@@ -403,10 +412,27 @@ class TestSkillWiring(unittest.TestCase):
         nxt = re.search(r"\n## ", rest)
         return rest[: nxt.start()] if nxt else rest
 
-    def test_step5_dispatches_through_direct_sh(self):
-        step5 = self._step("## Step 5 — Debate, then rebuttal")
+    def test_legacy_step5_dispatches_through_direct_sh(self):
+        step5 = self._step("## Step 5 — Debate, then rebuttal").split("### Legacy CLI transport only", 1)[1]
         self.assertIn("direct.sh", step5)
         self.assertIn("direct_codex", step5)
+
+    def test_default_transport_requires_persistent_paired_peer(self):
+        step0 = self._step("## Step 0 — Identify yourself and build the panel")
+        self.assertIn("herd persistent reviewer panes", step0)
+        self.assertIn("only to explicitly requested legacy CLI transport", step0)
+        self.assertIn("required Fable/Astra peer is missing", step0)
+        self.assertIn("even when Cursor answered. No APPROVE", step0)
+        step5 = self._step("## Step 5 — Debate, then rebuttal").split("### Legacy CLI transport only", 1)[0]
+        self.assertIn("same reviewer panes", step5)
+        self.assertNotIn("direct_codex", step5)
+        panel = (SKILL.parent / "references" / "herd-panel.md").read_text()
+        for requirement in ("append `--add-dir <seat-input-dir>` to the roster args",
+                            "applicable raw rules/skills",
+                            "BEGIN_REVIEW", "END_REVIEW", "$SP/claude.txt",
+                            "$SP/codex.txt", "$SP/cursor.txt", "never overwrite",
+                            "both matching request/hash", "no concrete"):
+            self.assertIn(requirement, panel)
 
     def test_step5_seats_one_peer_not_both(self):
         """Step 0: the panel is everyone else, so exactly one peer is yours.

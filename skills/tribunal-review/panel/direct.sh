@@ -11,7 +11,7 @@
 # references/panel-cli-notes.md.
 
 # One model selection for direct requests and CLI fallback.
-TRIBUNAL_CODEX_MODEL="${TRIBUNAL_CODEX_MODEL:-gpt-6-astra}"
+TRIBUNAL_CODEX_MODEL="gpt-6-astra"
 
 direct_preflight() {
   if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
@@ -40,7 +40,7 @@ PY
 }
 
 _codex_cli() {   # _codex_cli <prompt-file> <out-file> — the fallback, named once
-  codex exec -m "$TRIBUNAL_CODEX_MODEL" -c 'model_reasoning_effort="low"' \
+  codex exec -m "$TRIBUNAL_CODEX_MODEL" -c 'model_reasoning_effort="high"' \
     -s read-only --skip-git-repo-check -o "$2" - \
     < "$1" >>"$2.log" 2>&1
 }
@@ -69,7 +69,7 @@ print(json.dumps({
     "instructions": "Follow the instructions in the message exactly. Output only the report.",
     "input": [{"type": "message", "role": "user",
                "content": [{"type": "input_text", "text": open(sys.argv[1]).read()}]}],
-    "reasoning": {"effort": "low"},
+    "reasoning": {"effort": "high"},
     "tool_choice": "auto",
     "parallel_tool_calls": True,
 }))
@@ -141,7 +141,7 @@ direct_claude() {   # direct_claude <prompt-file> <out-file>
   body=$(python3 - "$prompt" <<'PY'
 import json, sys
 print(json.dumps({
-    "model": "claude-opus-5",
+    "model": "claude-fable-5-1",
     "max_tokens": 8192,
     # The OAuth path rejects a system prompt that does not open with this line.
     # It is the 26-token floor, and the reason direct is 700x cheaper than spawn.
@@ -182,7 +182,7 @@ PY
   if [ ! -s "$out" ]; then
     echo "tribunal: claude direct failed (http=$code), falling back to the CLI" >&2
     env -u ANTHROPIC_API_KEY -u ANTHROPIC_AUTH_TOKEN \
-      claude -p --restricted --strict-mcp-config \
+      claude -p --model claude-fable-5-1 --restricted --strict-mcp-config \
         --disallowedTools "Write,Edit,NotebookEdit" \
         --allowedTools Read,Grep,Glob \
         < "$prompt" > "$out" 2>>"$out.log" || return 1

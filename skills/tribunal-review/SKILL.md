@@ -5,7 +5,10 @@ description: Independent cross-model findings for code, plans, or prose when a t
 
 # Tribunal Review
 
-Four seats, one verdict. You are the orchestrator **and** a voting reviewer.
+The lead plus two independent reviewers by default; an optional Gemini advisor
+adds a fourth seat. You are the orchestrator **and** a voting reviewer, never
+only a dispatcher. Personally review the requirements, cumulative artifact and
+relevant callers/tests; record your own initial findings before reading peers.
 
 **Why cross-runtime:** two instances of the same model share the same blind spots.
 Agreement between independent seats prioritizes a finding for verification;
@@ -13,19 +16,41 @@ it does not prove the finding correct. A finding only one raises is a hypothesis
 
 ## Step 0 — Identify yourself and build the panel
 
-Determine which runtime you are, then the panel is everyone else:
+Use the actual lead model and the user's selection, not just the CLI name:
 
 | You are | Your peer (1.0) | Cross-lineage (1.0) | Advisor (0.5) |
 | --- | --- | --- | --- |
-| **Claude Code** | Codex — `codex exec -s read-only` | Cursor/Grok — `cursor-agent -p` | Gemini — `gemini -p` |
-| **Codex** | Claude — `claude -p` | Cursor/Grok — `cursor-agent -p` | Gemini — `gemini -p` |
+| **Claude Code / Fable** | Codex Astra | Cursor/Grok | Gemini, only when requested |
+| **Codex / Astra** | Claude Fable | Cursor/Grok | Gemini, only when requested |
 | **Gemini** | you do not orchestrate — stop and tell the user to run this from Claude or Codex | — | — |
 
 **Cursor/Grok is a panelist in every runtime**, and that is the point. It runs
-Grok 4.6 — a different model lineage from every other seat on the panel, which
+Grok 4.6 or a newer verified available Grok, pinned throughout the review — a different model lineage from every other seat on the panel, which
 is the whole premise of this skill: two instances of the same model share blind
 spots. When Gemini is unavailable, Cursor/Grok still supplies an independent
-cross-lineage vote; when Gemini answers, both seats participate.
+cross-lineage vote. Devin is execution-only (SWE-2 Max), never a reviewer or
+voting seat. Do not treat two CLIs using the same model as independent lineages.
+The Fable/Astra peer pairing is mandatory: no downgrade to Opus, Sol, a default
+model or an automatic fallback. Cursor supplements this peer, never replaces it.
+Record requested and observed models; an unavailable or unverified required
+peer leaves the tribunal gate open. Continue useful checks without claiming
+the required review passed. For other lead models, ask for the peer pairing.
+
+### Transport routing
+
+Use **herd persistent reviewer panes** when available. Follow
+[references/herd-panel.md](references/herd-panel.md) for the review-only contract,
+startup checks, model arguments, snapshot identity, collection and retention.
+Herd manages transport; this skill owns the review and the lead's acceptance.
+Never adopt an implementer's context. Preserve the main pane's readability.
+
+Steps 1–2's target preparation, Step 3's prompt assembler, Step 4's evidence
+checks and Step 6's output apply to every transport. The shell launch/wait
+blocks in Step 3, direct/CLI calls in Step 5 and direct preflight below apply
+**only to explicitly requested legacy CLI transport**. For herd, dispatch and
+collect all rounds using the reference instead; do not run both paths. If herd
+is unavailable, disclose it and use a supported independent native session;
+never silently replace persistent panes with one-shot commands.
 
 **The launch is the probe.** A CLI can be installed and still unusable — logged
 out, unlicensed, rate-limited, or blocked from the Keychain by the orchestrator's
@@ -36,7 +61,8 @@ question.** It runs the exact command, prompt, sandbox and repo the review needs
 — which a probe can only approximate — and it costs nothing extra, where a probe
 round cost a full model call and 15–30s per seat before the panel even started.
 
-A seat is **unavailable** when its `.txt` is empty or absent at collection. Read
+A seat is **unavailable** when its current request has no complete valid report.
+With legacy CLI transport, its `.txt` is empty or absent at collection. Read
 its `.log` once, name the reason in the output header (`gemini: unlicensed`), and
 carry on without it. Never retry a failed seat more than once, and never let one
 block the review. Panel composition is therefore known at Step 4, not up front —
@@ -45,12 +71,15 @@ the weights are applied at merge time anyway.
 | Panel available | Mode                                                                      |
 | --------------- | ------------------------------------------------------------------------- |
 | peer + Cursor + Gemini | full tribunal (4-way weighted)                                     |
-| any two of the three   | weighted panel at whatever weights answered                        |
-| exactly one            | bilateral (you + it); keep the declared seat weights      |
+| required peer + Cursor | default tribunal; keep declared seat weights |
+| required peer only (or + Gemini) | reduced coverage; disclose missing seats |
+| Cursor/Gemini without verified required peer | useful findings; gate OPEN, no APPROVE |
 | none                   | solo review — say so loudly in the output header, do not silently pretend |
 
-**No panelist is required.** An absence changes the weights, never the output shape,
-and never blocks the run. Name every seat that did not answer, and why, in the
+An absent panelist changes the weights, never the output shape. Continue useful
+checks, but the gate remains open if the required Fable/Astra peer is missing
+or its model identity is unverified, even when Cursor answered. No APPROVE; the caller cannot report SHIP.
+Name every seat that did not answer, and why, in the
 output header — a 2-way panel reported as a tribunal is the failure this skill
 exists to prevent.
 
@@ -136,11 +165,12 @@ Examples:
 ## Step 2 — Prepare the workspace
 
 ```bash
-SP="${CLAUDE_SCRATCHPAD:-$(mktemp -d)}/tribunal"   # never /tmp/*.txt globs
-mkdir -p "$SP"
+SP=$(mktemp -d)   # unique directory per review; never reuse stale seat output
 ```
 
-Source the direct transport. Debate and rebuttal run through it, so check its
+For explicitly requested legacy CLI transport only, source the direct transport.
+Herd rounds retain reviewer context and must skip this entire preflight block.
+Legacy debate and rebuttal run through it, so check its
 credentials now rather than mid-round — but **only when those rounds will
 actually run**. `quick` stops after the merge and `solo` has no panel, so
 neither ever calls the transport; failing them over a credential they do not
@@ -221,7 +251,9 @@ chunk (or prioritize and say in the header what was excluded).
 
 ## Step 3 — Launch the panel in parallel, in the background
 
-All panelists are independent. Launch them **backgrounded** and do your own review
+All panelists are independent. With herd, use its reference for launch and
+collection; the CLI process-management examples below are legacy-only.
+Launch them **backgrounded** and do your own review
 while they run. Launch every peer seat — never the orchestrator's own CLI as a
 duplicate reviewer, and never a preliminary liveness round: a seat that cannot
 run fails here, and Step 4 classifies it. Append each captured PID to
@@ -270,16 +302,18 @@ PANEL_DEADLINE=$((SECONDS + 900))
 env -u ALL_PROXY -u HTTP_PROXY -u HTTPS_PROXY \
     -u all_proxy -u http_proxy -u https_proxy \
   codex exec -s read-only -C "$REPO_OR_WORKTREE" --skip-git-repo-check \
-    -o "$SP/codex.txt" - < "$SP/prompt-codex.md" > "$SP/codex.log" 2>&1 &
+    --model gpt-6-astra -o "$SP/codex.txt" - < "$SP/prompt-codex.md" > "$SP/codex.log" 2>&1 &
 CODEX_PID=$!
 PANEL_PIDS+=("$CODEX_PID")
 
-# --- Gemini --------------------------------------------------------------
+# --- Gemini (only when requested) ----------------------------------------
+if [ "${INCLUDE_GEMINI:-0}" = 1 ]; then
 gemini --skip-trust --approval-mode plan -o text \
   -p "Review the material above per the instructions it contains." \
   < "$SP/prompt-gemini.md" > "$SP/gemini.txt" 2>"$SP/gemini.log" &
 GEMINI_PID=$!
 PANEL_PIDS+=("$GEMINI_PID")
+fi
 
 # --- Cursor / Grok 4.6 ---------------------------------------------------
 # One chat for the whole panel. Later rounds resume it instead of resending
@@ -297,7 +331,7 @@ PANEL_PIDS+=("$CURSOR_PID")
 
 # --- Claude (when Codex is the orchestrator) -----------------------------
 env -u ANTHROPIC_API_KEY -u ANTHROPIC_AUTH_TOKEN \
-  claude -p --restricted --strict-mcp-config \
+  claude -p --model fable --restricted --strict-mcp-config \
     --disallowedTools "Write,Edit,NotebookEdit" \
     --allowedTools Read,Grep,Glob \
     --add-dir "$REPO_OR_WORKTREE" \
@@ -401,6 +435,13 @@ cutting speculative scope from the plan.
 
 ## Step 4 — Merge
 
+Record the lead's own initial findings before reading external reports. For
+herd, collect only reports validated against the current request and snapshot;
+then use this same merge procedure. Material findings require the lead's own
+accept/reject rationale and evidence. Votes never override counterevidence;
+even a lone severe finding must be investigated. A low confidence score alone
+is not grounds to discard a concrete failure.
+
 **Collect the panel in one call, and never `cat` a reviewer's file.** A panel
 report is mostly prose around its `ISSUE-N` blocks; pulling all of it in — worse,
 `head -c` then `tail -c` the same file — is the single largest avoidable context
@@ -488,6 +529,11 @@ Two more triage rules, both from measured failure modes:
 
 ## Step 5 — Debate, then rebuttal (skip on `quick`)
 
+With herd, send both rounds through the same reviewer panes using
+`references/herd-panel.md`, preserving their context and repository access.
+Use the assembler templates below, but skip every direct/CLI launch and PID
+wait in this section. The following transport blocks are legacy CLI only.
+
 Two structurally different exchanges. One without the other is theatre.
 
 **A. Debate — attack.** Send each contested issue with all positions to every panelist.
@@ -498,11 +544,14 @@ position holder. New evidence, or concession. (`prompts/rebuttal.md`)
 
 **C. Judge.** Repeating the original argument **is** a concession — score it as one.
 A concession removes that reviewer's weight from their side. Recompute:
-final weight ≥1.5 → consensus (note the debate trail); below → unresolved, escalate
+final weight ≥1.5 → candidate consensus, still requiring the lead's evidence
+check (note the debate trail); below → unresolved, investigate or escalate
 to the user with the transcript.
 
 Run debate and rebuttal for all contested items in one batched call each — not one
 call per issue.
+
+### Legacy CLI transport only
 
 Both rounds reason over findings already merged in Step 4. Neither reads the
 repository, so neither pays for a coding-agent CLI: `panel/direct.sh`, sourced
@@ -567,6 +616,12 @@ A seat that fell back to its CLI says so on stderr; name it in the Step 6 header
 
 ## Step 6 — Output
 
+Before the verdict, the lead personally rereads the final cumulative artifact,
+verifies material risks and acceptance evidence, and records what it checked,
+what peers added, accept/reject reasons and remaining gaps. Do not outsource
+this closure or infer it from a worker's tests. If fixes changed the snapshot,
+follow the herd reference's versioned re-review before carrying a verdict forward.
+
 ```markdown
 ## Tribunal Review — <target>
 
@@ -618,7 +673,10 @@ Over-engineering sweep: <per reviewer — findings | clean | MISSING (did not ch
 
 ## Failure handling
 
-Degrade, never block. 4-way → 3-way → 2-way → solo, always with a header saying which.
+Report the panel that actually answered. Optional-seat loss reduces coverage;
+loss of the required Fable/Astra peer leaves the tribunal gate unverified.
+Continue useful local checks; never substitute a cheaper peer or call this a
+passing tribunal. An explicitly requested solo review is labeled solo.
 
 | Failure                             | Do                                                                                                         |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -635,9 +693,13 @@ do not retry the same command hoping for a different result.
 
 ## Cleanup
 
-```bash
-rm -rf "$SP"        # scoped to this run's dir — never a /tmp/*.txt glob
-```
+Save complete findings and version evidence in the lead's handoff. Once the lead
+has all necessary information and no concrete follow-up depends on a reviewer's
+context, close panes created for this task under herd's teardown check. Do not
+wait for project completion. Keep needed contexts and their referenced files;
+pre-existing/adopted panes require explicit closure authority. A timeout alone
+never authorizes closing a reviewer. Never stop the server. Legacy CLI PID
+cleanup applies only to the one-shot processes that invocation owns.
 
 ## Red flags — you're doing it wrong
 
@@ -654,4 +716,4 @@ rm -rf "$SP"        # scoped to this run's dir — never a /tmp/*.txt glob
 - Treating a reviewer's silence on over-engineering as a clean sweep — the explicit verdict line is required
 - Letting "might need it later" survive debate as a defense of added structure
 - Letting a cross-boundary finding (fix belongs to another service) drive the verdict
-- Running the full tribunal on this skill's own files — use one plain `codex exec review` pass
+- Asking reviewers of this skill to invoke it recursively instead of reviewing its files

@@ -66,12 +66,37 @@ class TestRoster(unittest.TestCase):
             if "args" in w:
                 self.assertIsInstance(w["args"], list, w["name"])
 
-    def test_interactive_kinds_preapprove_reads(self):
-        """Devin blocks on read-only `ls` without this; Cursor on any command."""
-        flags = {"devin": "--permission-mode", "cursor": "--force"}
+    def test_workers_have_role_appropriate_permissions_and_models(self):
+        """An executor's approval flag must not give a reviewer write tools."""
         for w in self.doc["worker"]:
-            if w["kind"] in flags:
-                self.assertIn(flags[w["kind"]], w.get("args", []), w["name"])
+            args = w.get("args", [])
+            if w["kind"] == "devin":
+                self.assertIn("--permission-mode", args, w["name"])
+                self.assertEqual(args[args.index("--model") + 1], "swe-2-max")
+                self.assertNotIn("reviewer", w["role"])
+                if w["name"] == "implementer":
+                    self.assertEqual(args[args.index("--permission-mode") + 1], "accept-edits")
+                    self.assertIn("--sandbox", args)
+            elif w["kind"] == "cursor":
+                self.assertEqual(args[args.index("--mode") + 1], "ask")
+                self.assertEqual(args[args.index("--model") + 1], "cursor-grok-4.6-high")
+                self.assertNotIn("--force", args)
+            elif w["name"] == "review-fable":
+                self.assertEqual(args[args.index("--model") + 1], "fable")
+                self.assertEqual(args[args.index("--tools") + 1], "Read,Grep,Glob")
+                self.assertIn("--restricted", args)
+                self.assertIn("--strict-mcp-config", args)
+            elif w["name"] == "review-astra":
+                self.assertEqual(args[args.index("--model") + 1], "gpt-6-astra")
+                self.assertEqual(args[args.index("--sandbox") + 1], "read-only")
+
+    def test_repo_and_example_reviewer_settings_agree(self):
+        actual = tomllib.loads((ROOT / "herd.toml").read_text())
+        expected = {w["name"]: w["args"] for w in self.doc["worker"]
+                    if w["name"] in ("reviewer", "review-fable", "review-astra")}
+        for worker in actual["worker"]:
+            if worker["name"] in expected:
+                self.assertEqual(worker["args"], expected[worker["name"]])
 
     def test_no_peer_whitelist(self):
         """Spec: peers are the whole ecosystem, discovered live, never listed."""
@@ -230,10 +255,12 @@ class TestSkill(unittest.TestCase):
         self.assertIn("Bypass is not approval", self.body)
         self.assertIn("read-only scout", self.body)
 
-    def test_panes_are_kept(self):
+    def test_panes_close_after_complete_handoff(self):
         tear = self.body[self.body.index("## 7. Teardown") :]
-        self.assertNotIn("closed only when", tear)
-        self.assertIn("never the lead's", tear)
+        self.assertIn("lead has all necessary information", tear)
+        self.assertIn("no concrete follow-up", tear)
+        self.assertIn("Do not wait for the whole project", tear)
+        self.assertIn("Pre-existing/adopted panes need explicit closure authority", tear)
 
     def test_roster_args_and_restart_rule(self):
         self.assertIn("`args`", self.body)

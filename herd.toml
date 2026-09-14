@@ -6,18 +6,32 @@ name = "reviewer"
 kind = "cursor"
 role = "cross-lineage reviewer, read-only"
 machine = "local"
-args = ["--force", "--model", "cursor-grok-4.6-high"]
+args = ["--mode", "ask", "--model", "cursor-grok-4.6-high"]
+
+[[worker]]
+name = "review-fable"
+kind = "claude"
+role = "independent read-only peer for an Astra lead"
+machine = "local"
+args = ["--model", "fable", "--restricted", "--strict-mcp-config", "--tools", "Read,Grep,Glob"]
+
+[[worker]]
+name = "review-astra"
+kind = "codex"
+role = "independent read-only peer for a Claude Fable lead"
+machine = "local"
+args = ["--model", "gpt-6-astra", "--sandbox", "read-only"]
 
 [[worker]]
 name = "implementer"
 kind = "devin"
 role = "scoped implementation with tests, one plan task per dispatch"
 machine = "local"
-args = ["--permission-mode", "auto"]
+args = ["--model", "swe-2-max", "--permission-mode", "accept-edits", "--sandbox"]
 
 [[worker]]
 name = "mini-runner"
 kind = "devin"
 role = "run and verify on the production box; read-only unless the plan says otherwise"
 machine = "macmini"            # `herdr machine list`; control via: ssh macmini herdr agent ...
-args = ["--permission-mode", "auto"]
+args = ["--model", "swe-2-max", "--permission-mode", "auto"]

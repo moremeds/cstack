@@ -179,24 +179,29 @@ repository they intend to change, and prose for false or misleading claims.
 
 **Use it when:** one model reviewing its own work is not enough.
 
-**What it does:** the invoking agent orchestrates and votes while other
-available model CLIs review the same artifact independently. Findings are
-merged by weighted agreement; contested findings go through debate and
-rebuttal.
+**What it does:** the lead personally reviews and verifies the artifact while
+independent reviewers work in persistent `herd` panes. Astra requires a Fable
+peer; Fable requires an Astra peer, without model downgrade. Cursor uses Grok
+4.6 or a newer verified version; Devin SWE-2 Max is execution-only. Reviewers
+retain their own context for debate, rebuttal and versioned fix verification.
+The lead validates findings and owns the final acceptance decision.
 
 | Seat | Weight |
 | --- | ---: |
 | Orchestrator | **1.0** |
 | Claude or Codex peer | **1.0** |
 | Cursor / Grok | **1.0** |
-| Gemini advisor | 0.5 |
+| Gemini advisor (only when requested) | 0.5 |
 
 **What you get:** one deduplicated verdict with consensus findings, contested
 items, dismissed low-confidence claims, and the exact panel that answered.
 
-Every seat is probed for a real response before use. An installed CLI may be
+The actual assignment establishes whether a seat can answer. An installed CLI may be
 logged out, unlicensed, or unable to reach its credentials. Missing reviewers
-are named; a solo review is never presented as a four-model tribunal.
+are named; an unavailable required Fable/Astra peer leaves the gate open.
+Panes stay readable while needed. Once the lead has all necessary information
+and no follow-up needs the context, it saves the evidence and closes task-created
+panes without waiting for the whole project to finish.
 
 The weights represent lineage independence, not measured accuracy.
 

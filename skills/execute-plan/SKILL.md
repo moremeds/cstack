@@ -25,6 +25,36 @@ This routing remains in force inside skills this invocation calls, including
 `review-cycle`. A nested instruction that names an unavailable tracker maps to
 the tracker above; it is not a reason to improvise or skip the review.
 
+## Execution routing
+
+The lead chooses the executor for each task from its difficulty, required
+context, cost, and available capabilities:
+
+| Executor | Use when |
+| --- | --- |
+| lead | the change is small, tightly coupled, or belongs on the integration branch |
+| native worker | bounded one-off work benefits from disposable parallel help |
+| `herd` worker | context must persist, or another provider or machine is needed |
+
+There is no `--herd` mode. Select `herd` only where its transport is useful,
+reuse one worker for related sequential tasks, and run workers concurrently
+only for independent tasks with disjoint owned files. If selecting Devin, use
+SWE-2 Max as an executor only, never as a reviewer. If selecting Cursor, first
+verify that Grok 4.6 or newer is actually available, then pin that exact model
+for the task.
+
+Delegation does not transfer acceptance. The lead personally reads the approved
+requirements, cumulative changes, relevant callers, and relevant tests; checks
+the key evidence; and records why material worker findings were accepted or
+rejected. A worker summary or green report is input, not completion evidence.
+
+Workers receive global, machine-local, and target-repository rules plus shared
+skills at startup. Start or adopt the worker in its actual worktree, then
+preflight its cwd and the rules and skills it loaded before dispatch. Approved
+scope includes ordinary edits, tests, and debugging in that worktree without
+repeated questions. Configure that autonomy explicitly: it does not imply
+bypass mode, and a Git worktree is not an OS security boundary.
+
 ## Argument (optional)
 
 `/execute-plan [--full-cycle] [<plan-ref>]`
@@ -44,7 +74,7 @@ the tracker above; it is not a reason to improvise or skip the review.
 
 0. **Full-cycle pre-review gate** (only with `--full-cycle`, and only if this exact plan version has not already passed review). Before touching code, review the plan itself — see **Which reviewer** below. If the approved plan exists only in conversation or behind a task ID, copy it verbatim to a scratch artifact **outside the repository** and pass that path to `review-cycle`; do not dirty the checkout just to create a review target. Proceed to Step 1 only on a passing verdict (`review-cycle`: SHIP; `tribunal-review`: APPROVE) **with zero unresolved findings**. `CHANGES NEEDED` is not passable by asserting you applied the findings — apply only scope-preserving corrections, re-run the reviewer on the edited plan, and carry its new verdict. A correction that changes business, scientific, or authorization assumptions requires the one blocking question instead. Findings the reviewer left unresolved or escalated go to the user, not into your own pass.
 
-1. **Worktree setup + execution baseline.** If the work isn't already in a worktree, create one in `.worktrees/<branch-slug>/`. Use a suitable existing task branch; otherwise create `<scope>/<short-title>` from the verified delivery base (detect the default branch, do not assume master). If the target branch is already checked out in the main tree (a branch can't be checked out twice), move it into `.worktrees/<branch-slug>/` or branch off it there — or state in one line that worktree creation is being skipped and why; never skip silently. Don't ask which branch — derive from the plan's title or context. If a reused branch contains unrelated commits that must not ship with this plan, create a fresh branch/worktree from the correct delivery base instead of merely excluding them from review; keep stacked commits only when the plan actually depends on them. Before the first plan-caused edit, record `EXEC_BASE=$(git rev-parse HEAD)` plus the current staged, unstaged, and untracked sets. Those are the boundary between pre-existing work and this execution; never reconstruct the boundary later from the default branch.
+1. **Worktree setup + execution baseline.** If the work isn't already in a worktree, create one in `.worktrees/<branch-slug>/`. Use a suitable existing task branch; otherwise create `<scope>/<short-title>` from the verified delivery base (detect the default branch, do not assume master). If the target branch is already checked out in the main tree (a branch can't be checked out twice), move it into `.worktrees/<branch-slug>/` or branch off it there — or state in one line that worktree creation is being skipped and why; never skip silently. Don't ask which branch — derive from the plan's title or context. If a reused branch contains unrelated commits that must not ship with this plan, create a fresh branch/worktree from the correct delivery base instead of merely excluding them from review; keep stacked commits only when the plan actually depends on them. Before the first plan-caused edit or worker dispatch, record `EXEC_BASE=$(git rev-parse HEAD)` on the lead's integration branch plus its current staged, unstaged, and untracked sets. Those are the boundary between pre-existing work and this execution; never reconstruct the boundary later from the default branch. Start each worker from that integration commit, or from the later integration commit containing its declared dependency.
 
 2. **Track the milestones.** Translate the plan into one entry per milestone using **Runtime routing**. Track requested review gates: pre/post with `--full-cycle`, post only for a review-afterwards request. Add the applicable review + e2e entries so the tracker cannot show “complete” while review is still pending. Mark an entry `in_progress` before starting it, and `completed` only when its commit or gate lands **and** the evidence satisfies the plan's own stated acceptance condition for that milestone, on the host or environment the plan names. If the condition names one machine and the check ran on another, the entry is not complete — leave it open and record the gap.
 
@@ -54,6 +84,8 @@ the tracker above; it is not a reason to improvise or skip the review.
    - If a test fails, fix it before moving on (don't carry a red bar into the next milestone).
    - On green, commit with a focused message. Stage explicit paths, listing files individually (never `git add -A`/`--all`, even scoped to paths — `git add -A <dir>` still stages untracked files under that dir; ignoring the git-guard warning is not an option).
    - Commit messages: `<type>(<scope>): <subject>` matching repo style. No Claude trailers (per global CLAUDE.md).
+   - For herdr implementation work, require a scoped worker commit and its evidence. Native workers never commit; the lead inspects and commits their explicit changed paths. In either case, inspect the changes, integrate, and run relevant checks on the integration branch before completing the milestone or dispatching any dependent task. Integrate independent parallel work one branch at a time and recheck after each integration.
+   - A nested `herd` call reuses this tracker and commit policy. Workers do not recursively invoke `execute-plan`, `review-cycle`, or another end-to-end review workflow; the lead owns those gates.
 
 4. **Collect evidence as you go.** Don't wait for the end. For each milestone, note the verification artifact and where it lives:
    - Test runs → command + exit code + tail of output

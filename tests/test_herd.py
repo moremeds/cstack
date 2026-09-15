@@ -294,15 +294,17 @@ RULES = [ROOT / "rules" / "AGENTS.md", ROOT / "rules" / "CLAUDE.md"]
 
 
 class TestRegistration(unittest.TestCase):
-    def test_readme_lists_six_skills(self):
+    def test_readme_lists_seven_skills(self):
         body = README.read_text()
         self.assertIn("`$herd <task>`", body)
         self.assertNotIn("five skills", body)
-        self.assertIn("six skills", body)
+        self.assertIn("seven skills", body)
+        self.assertIn("seesaw-review", body)
 
-    def test_manifests_name_herd(self):
+    def test_manifests_name_herd_and_seesaw(self):
         for m in MANIFESTS:
             self.assertIn("herd", m.read_text(), m.name)
+            self.assertIn("seesaw-review", m.read_text(), m.name)
 
     def test_rules_route_to_herd(self):
         for r in RULES:

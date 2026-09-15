@@ -12,8 +12,8 @@ lead designs the team, picks a transport per worker, dispatches, reviews, and
 integrates. Execution can be delegated; the lead's own review and acceptance
 cannot. Small edits and integration fixes may stay with the lead.
 
-When called by `execute-plan`, `review-cycle`, or `tribunal-review`, manage only
-the assigned workers. The caller owns scope, tracker, pass order, commit policy,
+When called by `execute-plan`, `review-cycle`, `tribunal-review`, or
+`seesaw-review`, manage only the assigned workers. The caller owns scope, tracker, pass order, commit policy,
 review gates, and delivery. Do not start another copy of the calling workflow.
 
 ## 1. Gate
@@ -209,10 +209,10 @@ diff alone is not evidence the task had nothing to do.
 ## 6. Integrate and accept
 
 Integration, cross-check, and final acceptance happen in the lead's context
-with evidence, never on a worker's say-so. Cross-model review still goes
-through `/tribunal-review`; `herd` does not replace it. Tribunal reviewers use
-its [review-only contract](../tribunal-review/references/herd-panel.md), not
-the implementation commit contract. Findings and majority votes are inputs;
+with evidence, never on a worker's say-so. The calling review workflow owns
+reviewer composition and verdict: `tribunal-review` for a tribunal,
+`seesaw-review` for a bounded patch review. Herd supplies transport only. These
+reviewers use a read-only assignment, not the implementation commit contract. Findings and majority votes are inputs;
 the lead must verify material issues and the final cumulative result itself.
 
 ## 7. Teardown

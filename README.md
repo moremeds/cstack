@@ -4,11 +4,11 @@
 
 **C**laude Code · **C**odex · **C**ursor · **C**henxi
 
-**Six skills for orchestrating, reviewing, executing, and understanding agent work.**
+**Seven skills for orchestrating, reviewing, executing, and understanding agent work.**
 
 ![license](https://img.shields.io/badge/license-MIT-black)
 ![runtimes](https://img.shields.io/badge/runtimes-Claude%20Code%20%C2%B7%20Codex-black)
-![skills](https://img.shields.io/badge/skills-6-black)
+![skills](https://img.shields.io/badge/skills-7-black)
 ![tests](https://img.shields.io/badge/tests-mutation--checked-black)
 
 </div>
@@ -23,14 +23,15 @@
 | drive long-lived workers across sessions, models, and machines | `$herd <task>` |
 | find out what is actually happening | `/whatup` |
 | execute an already-approved plan | `/execute-plan <plan-path>` |
+| check a bounded fix preserves related behavior | `/seesaw-review <target>` |
 | review, fix, and re-verify an artifact | `/review-cycle <target>` |
 | get an independent cross-model review | `/tribunal-review <target>` |
 
-cstack is a Claude Code and Codex skills plugin. The six skills install
+cstack is a Claude Code and Codex skills plugin. The seven skills install
 together and share source files. `orchestrate` requires a host with native
 subagents and access to Astra; installing the plugin does not supply those capabilities.
 
-## The six skills
+## The seven skills
 
 ### `orchestrate`
 
@@ -136,6 +137,22 @@ cumulative diff, and run the plan's real end-to-end check when one exists.
 
 ---
 
+### `seesaw-review`
+
+```text
+seesaw-review [<patch, PR, or task target>]
+```
+
+A focused patch review: prove the original bug is fixed and the related behavior
+still works. The lead traces callers, sibling paths and relevant retry/runtime
+conditions, then verifies concrete preservation checks with one independent
+Fable/Astra peer through Herd. Corrections keep the original baseline and checks;
+two unsuccessful correction rounds escalate instead of accumulating more patches.
+
+It reuses task evidence and returns a bounded PASS / FIX / ESCALATE. It does not
+replace required `review-cycle` or `tribunal-review` gates, authorize standalone
+edits or deployment, or turn unrelated old problems into patch scope.
+
 ### `review-cycle`
 
 > **Review that changes the artifact, not just comments beside it.**
@@ -212,6 +229,8 @@ approved plan ──▶ execute-plan ──▶ verified branch / PR
                       │
                       └─ --full-cycle ─▶ review ─▶ execute ─▶ review + e2e
 
+bounded bug fix ──▶ seesaw-review
+
 finished artifact ─▶ review-cycle
                           │
                           └─ Pass 2 ─▶ tribunal-review
@@ -231,7 +250,7 @@ lost the thread ─────────────────────�
 /plugin install cstack@cstack
 ```
 
-This installs all six skills together, plus the shared Claude Code commands
+This installs all seven skills together, plus the shared Claude Code commands
 and hooks.
 
 ### From a checkout
@@ -259,7 +278,7 @@ evidence. Hook checks are best-effort helpers, not a complete security boundary.
 ## What else is in the repo?
 
 ```text
-skills/    the plugin       orchestrate, herd, execute-plan, review-cycle, tribunal-review, whatup
+skills/    the plugin       orchestrate, herd, execute-plan, seesaw-review, review-cycle, tribunal-review, whatup
 rules/     standing rules   maintainer defaults for Claude Code and Codex
 hooks/     hard guardrails  block or rewrite selected Claude Code tool calls
 commands/  entry points     small shared Claude Code commands

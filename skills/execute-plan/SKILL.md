@@ -40,7 +40,7 @@ There is no `--herd` mode. Select `herd` only where its transport is useful,
 reuse one worker for related sequential tasks, and run workers concurrently
 only for independent tasks with disjoint owned files. If selecting Devin, use
 SWE-2 Max as an executor only, never as a reviewer. If selecting Cursor, first
-verify that Grok 4.6 or newer is actually available, then pin that exact model
+verify that Grok 4.7 or newer is actually available, then pin that exact model
 for the task.
 
 Delegation does not transfer acceptance. The lead personally reads the approved

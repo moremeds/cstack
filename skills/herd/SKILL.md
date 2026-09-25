@@ -7,7 +7,7 @@ description: Lead-chosen transport for delegated work — native subagent, same-
 
 `$herd <task or approved plan>`
 
-The lead is whoever is running: Fable in Claude Code, Astra in Codex. The
+The lead is whoever is running: Fable or Opus in Claude Code, Astra in Codex. The
 lead designs the team, picks a transport per worker, dispatches, reviews, and
 integrates. Execution can be delegated; the lead's own review and acceptance
 cannot. Small edits and integration fixes may stay with the lead.
@@ -44,9 +44,9 @@ cost, and availability; Devin is an option, not the default for every task.
 If selecting Devin, use **SWE-2 Max only**, never as a reviewer or voting seat.
 Select its exact available id with `devin models list` (`swe-2-max` verified
 2026-09-14). Do not substitute Fusion, Auto, or another model. Cursor uses
-Grok 4.6 or a newer verified available Grok version, pinned for the task.
+Grok 4.7 or a newer verified available Grok version, pinned for the task.
 Check `cursor-agent --list-models`; never infer upgrades from an alias.
-For independent review, Astra's peer is Claude Fable; Claude Fable's peer is
+For independent review, Astra's peer is Claude Fable; a Claude Code lead's (Fable or Opus) peer is
 Codex Astra. Never downgrade that peer to Opus/Sol or substitute Cursor for it;
 an unavailable or unverified required peer leaves the review gate open. Record
 requested and observed model separately. Availability and price are live facts,

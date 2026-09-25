@@ -8,7 +8,7 @@ worker transport only. Do not delegate the tribunal workflow itself.
 ## Seats and startup
 
 - Astra lead: Claude Fable peer; Claude Fable lead: Codex Astra peer. Cursor uses
-  verified Grok 4.6 or a newer available Grok, pinned for this review. Devin is
+  verified Grok 4.7 (`grok-4.7-high`) or a newer available Grok, pinned for this review. Devin is
   never a reviewer, debate participant or voting seat, even in a fresh pane.
 - Fable/Astra is a required pairing, not a cost preference. Do not downgrade
   to Opus or Sol, pass an automatic fallback model, or let Cursor replace the
@@ -17,7 +17,7 @@ worker transport only. Do not delegate the tribunal workflow itself.
   arguments (verify local help and model availability before launch):
   - Claude: `--model fable --restricted --strict-mcp-config --tools Read,Grep,Glob --add-dir <seat-input-dir>`.
   - Codex: `--model gpt-6-astra --sandbox read-only`.
-  - Cursor: `--model cursor-grok-4.6-high --mode ask --workspace <review-worktree>`.
+  - Cursor: `--model grok-4.7-high --mode ask --workspace <review-worktree>`.
   Do not inherit implementation flags such as `--force` or bypass permissions.
 - Use a fresh independent context unless a known reviewer session has only
   reviewed this same task. Never adopt an implementer or a session with unknown

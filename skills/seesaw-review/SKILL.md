@@ -78,8 +78,8 @@ host; missing required evidence remains a gate gap, not a passing caveat.
 ## 4. One independent peer
 
 Use `herd` for one read-only independent seat: Fable for an Astra lead, Astra for
-a Fable lead. Verify serving identity; no downgrade or substitution. Optional
-Cursor uses verified Grok 4.6 or newer; Devin may execute authorized checks or
+a Claude Code lead (Fable or Opus). Verify serving identity; no downgrade or substitution. Optional
+Cursor uses verified Grok 4.7 or newer; Devin may execute authorized checks or
 fixes but never review or vote. If the required peer is unavailable, report the
 missing gate and continue useful lead checks without a passing verdict.
 

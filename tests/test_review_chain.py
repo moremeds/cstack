@@ -304,7 +304,7 @@ class TestCursorPeerIsSandboxed(unittest.TestCase):
 
     def setUp(self):
         body = TRIBUNAL.read_text()
-        launch = body[body.index("--- Cursor / Grok 4.6"):]
+        launch = body[body.index("--- Cursor / Grok 4.7"):]
         launch = launch[:launch.index("CURSOR_PID=$!")]
         self.cmd = "\n".join(l for l in launch.splitlines()
                              if not l.lstrip().startswith("#"))
@@ -313,7 +313,7 @@ class TestCursorPeerIsSandboxed(unittest.TestCase):
         for frag, why in [
             ("--mode ask", "the ONLY measured write guard; -p alone writes files"),
             ("--trust", "headless runs die on the workspace-trust dialog without it"),
-            ("--model cursor-grok-4.6", "the cross-lineage vote is the reason this seat exists"),
+            ("--model grok-4.7", "the cross-lineage vote is the reason this seat exists"),
             ("--workspace", "it cannot open the files it is reviewing"),
             ('< "$SP/prompt-cursor.md"', "no stdin prompt"),
             ('> "$SP/cursor.txt"', "the review is not captured anywhere"),

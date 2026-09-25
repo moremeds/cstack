@@ -8,7 +8,7 @@ kind = "cursor"                 # a kind from `herdr agent` help
 role = "cross-lineage reviewer, read-only"
 machine = "local"               # "local" or a label from `herdr machine list`
 # Reviewer mode; never inherit an implementation worker's --force flag.
-args = ["--mode", "ask", "--model", "cursor-grok-4.6-high"]
+args = ["--mode", "ask", "--model", "grok-4.7-high"]
 
 [[worker]]
 name = "review-fable"

@@ -79,7 +79,7 @@ class TestRoster(unittest.TestCase):
                     self.assertIn("--sandbox", args)
             elif w["kind"] == "cursor":
                 self.assertEqual(args[args.index("--mode") + 1], "ask")
-                self.assertEqual(args[args.index("--model") + 1], "cursor-grok-4.6-high")
+                self.assertEqual(args[args.index("--model") + 1], "grok-4.7-high")
                 self.assertNotIn("--force", args)
             elif w["name"] == "review-fable":
                 self.assertEqual(args[args.index("--model") + 1], "fable")

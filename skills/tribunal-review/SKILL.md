@@ -20,12 +20,12 @@ Use the actual lead model and the user's selection, not just the CLI name:
 
 | You are | Your peer (1.0) | Cross-lineage (1.0) | Advisor (0.5) |
 | --- | --- | --- | --- |
-| **Claude Code / Fable** | Codex Astra | Cursor/Grok | Gemini, only when requested |
+| **Claude Code / Fable or Opus lead** | Codex Astra | Cursor/Grok | Gemini, only when requested |
 | **Codex / Astra** | Claude Fable | Cursor/Grok | Gemini, only when requested |
 | **Gemini** | you do not orchestrate — stop and tell the user to run this from Claude or Codex | — | — |
 
 **Cursor/Grok is a panelist in every runtime**, and that is the point. It runs
-Grok 4.6 or a newer verified available Grok, pinned throughout the review — a different model lineage from every other seat on the panel, which
+Grok 4.7 (`grok-4.7-high`) or a newer verified available Grok, pinned throughout the review — a different model lineage from every other seat on the panel, which
 is the whole premise of this skill: two instances of the same model share blind
 spots. When Gemini is unavailable, Cursor/Grok still supplies an independent
 cross-lineage vote. Devin is execution-only (SWE-2 Max), never a reviewer or
@@ -315,14 +315,14 @@ GEMINI_PID=$!
 PANEL_PIDS+=("$GEMINI_PID")
 fi
 
-# --- Cursor / Grok 4.6 ---------------------------------------------------
+# --- Cursor / Grok 4.7 ---------------------------------------------------
 # One chat for the whole panel. Later rounds resume it instead of resending
 # the diff. --workspace must repeat on every turn with the same value: the
 # chat is keyed on the effective workspace, and the flag defaults to cwd, so
 # a resumed turn run from elsewhere forks the session silently and the seat
 # answers from an empty context.
 CURSOR_CHAT=$(cursor-agent create-chat 2>/dev/null | tr -d '[:space:]')
-cursor-agent -p --trust --mode ask --model cursor-grok-4.6-high \
+cursor-agent -p --trust --mode ask --model grok-4.7-high \
     --resume "$CURSOR_CHAT" --workspace "$REPO_OR_WORKTREE" \
     --output-format text \
     < "$SP/prompt-cursor.md" > "$SP/cursor.txt" 2>"$SP/cursor.log" &
@@ -397,9 +397,9 @@ Spend the gap on work the merge needs anyway, in this order:
 4. Re-read the target's spec or plan for the standing-rule check.
 
 Add `deep` flags when requested: `-c model_reasoning_effort=high` (Codex),
-`--model cursor-grok-4.6-xhigh` (Cursor), `-m gemini-2.5-pro` (Gemini).
+`--model grok-4.7-xhigh` (Cursor), `-m gemini-2.5-pro` (Gemini).
 Verify a Cursor model id against `cursor-agent --list-models` before using it —
-`cursor-grok-4.6-high` and `-xhigh` were confirmed present on this machine.
+`grok-4.7-high` and `-xhigh` were confirmed present on this machine.
 
 **While they run:** do your own review with your native tools. You are a voting
 reviewer, not just a judge — produce your own issue list in the same format
@@ -581,7 +581,7 @@ PANEL_PIDS+=("$!")
 # remembers the diff it read. --workspace is not optional here even though it
 # defaults to cwd: the orchestrator's cwd is not $REPO_OR_WORKTREE, and a
 # mismatch forks the session with no error.
-cursor-agent -p --trust --mode ask --model cursor-grok-4.6-high \
+cursor-agent -p --trust --mode ask --model grok-4.7-high \
     --resume "$CURSOR_CHAT" --workspace "$REPO_OR_WORKTREE" \
     --output-format text \
     < "$SP/prompt-debate.md" > "$SP/debate-cursor.txt" 2>&1 &
@@ -604,7 +604,7 @@ python3 "$TR/prompts/assemble.py" --template rebuttal --class "$TARGET_CLASS" \
   > "$SP/prompt-rebuttal.md"
 direct_codex "$SP/prompt-rebuttal.md" "$SP/rebuttal-peer.txt" &   # your peer only
 PANEL_PIDS+=("$!")
-cursor-agent -p --trust --mode ask --model cursor-grok-4.6-high \
+cursor-agent -p --trust --mode ask --model grok-4.7-high \
     --resume "$CURSOR_CHAT" --workspace "$REPO_OR_WORKTREE" \
     --output-format text \
     < "$SP/prompt-rebuttal.md" > "$SP/rebuttal-cursor.txt" 2>&1 &

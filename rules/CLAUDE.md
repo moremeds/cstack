@@ -69,15 +69,15 @@ Every read, write, and reply costs tokens. Save them by reading and saying less,
 - Do not re-read a file already read, or re-paste content already in context.
 - Filter command output before looking at it (`head` / `tail` / `grep` / `wc` / `--quiet`); never pour a full log, diff, or test run into context.
 - Replies carry the conclusion and the necessary evidence only: no restating file contents, no echoing the user's words, no listing options that were not taken.
-- No "just in case" subagents, tool calls, or lookups. Before each call ask: if I skip this, does the task stall? (Delegation covered by the dispatch rules below is not "just in case".)
+- No "just in case" subagents, tool calls, or lookups. Before each call ask: if I skip this, does the task stall? (Delegation covered by the dispatch rules below, and a lookup made to verify a claim before stating it, are not "just in case".)
 - The handoff summary written before compaction preserves: difficulties hit and how they were resolved, options tried or rejected and why, exact stated constraints/preferences/decisions (close to the user's own words), current status, open items, and specific details hard to reconstruct (names, numbers, paths, exact wording) — condense your own reasoning harder than the user's input.
 - Browser checks use text snapshots (a11y tree / DOM query) by default; take a screenshot (~300k chars each) only for visual verification the task actually requires.
 
 ## Session & dispatch discipline
 
 - **Never use the superpowers SDD / parallel-dispatch pattern** (`subagent-driven-development`, `dispatching-parallel-agents`: per-task implementer + reviewer agents, parallel fan-out). This overrides those skills. **Approved plans are executed with the user's own `/execute-plan` skill** (worktree → straight-through implementation → milestone commits → evidence-based verification); outside Fable orchestration mode it runs as one linear thread in the main session, with only the labor delegation below.
-- **Cross-model review goes through `/tribunal-review`** (`~/.agents/skills/tribunal-review`), the portable skill both Claude and Codex orchestrate. Here Claude runs it and Codex is the peer reviewer (weight 1.0); in Codex the roles swap. Cursor/Grok (`cursor-agent`, model `cursor-grok-4.6-high`) is a weight-1.0 cross-lineage panelist available in both runtimes; Gemini is a weight-0.5 advisor; availability is determined by the current launch. The review launch is the availability probe; skip with a named reason when it fails. Pass `focus: <text>` to steer emphasis; focus raises attention and never suppresses an off-topic CRITICAL. `/review-cycle` (also portable, `~/.agents/skills/review-cycle`) calls it as its Pass 2 engine.
-- **Opus delegates labor to Sonnet; Sonnet and smaller models do the work themselves.** Running as Opus, send independent search, bulk reading, extraction, cross-checks, and mechanical edits to a subagent with `model: "sonnet"` set explicitly whenever that saves main-context tokens. Keep problem framing, key decisions, design tradeoffs, evidence synthesis, integration, and final acceptance yourself. One named worker per bounded task — this is not the fan-out banned above: no per-task implementer+reviewer pairs, no parallel swarm of peers. Delegate through the Agent tool; several distinct roles are several bounded Agent calls. `orchestrate` is Codex-only — it leads as Astra and reports a limitation when Astra is absent — so never invoke it from Claude. `herd` is the cross-session, cross-model, cross-machine variant: the running lead (Fable or Astra) picks peer session, herdr agent, or native subagent per worker. A subagent never delegates further: two tiers at most. This holds inside `/execute-plan`: the plan still runs as one linear thread, but a bulk mechanical step within it may go to a Sonnet worker.
+- **Cross-model review goes through `/tribunal-review`** (`~/.agents/skills/tribunal-review`), the portable skill both Claude and Codex orchestrate. Here Claude runs it and Codex is the peer reviewer (weight 1.0); in Codex the roles swap. Cursor/Grok (`cursor-agent`, model `grok-4.7-high`) is a weight-1.0 cross-lineage panelist available in both runtimes; Gemini is a weight-0.5 advisor; availability is determined by the current launch. The review launch is the availability probe; skip with a named reason when it fails. Pass `focus: <text>` to steer emphasis; focus raises attention and never suppresses an off-topic CRITICAL. `/review-cycle` (also portable, `~/.agents/skills/review-cycle`) calls it as its Pass 2 engine.
+- **Opus delegates labor to Sonnet; Sonnet and smaller models do the work themselves.** Running as Opus, send independent search, bulk reading, extraction, cross-checks, and mechanical edits to a subagent with `model: "sonnet"` set explicitly whenever that saves main-context tokens. Keep problem framing, key decisions, design tradeoffs, evidence synthesis, integration, and final acceptance yourself. One named worker per bounded task — this is not the fan-out banned above: no per-task implementer+reviewer pairs, no parallel swarm of peers. Delegate through the Agent tool; several distinct roles are several bounded Agent calls. `orchestrate` is Codex-only — it leads as Astra and reports a limitation when Astra is absent — so never invoke it from Claude. `herd` is the cross-session, cross-model, cross-machine variant: the running lead (Fable, Opus, or Astra) picks peer session, herdr agent, or native subagent per worker. A subagent never delegates further: two tiers at most. This holds inside `/execute-plan`: the plan still runs as one linear thread, but a bulk mechanical step within it may go to a Sonnet worker.
 - Any delegated agent (Opus→Sonnet labor, Fable mode, or research) gets a bounded scope, explicit acceptance criteria, and a turn budget (~40 turns); past budget, stop it and rescope instead of letting it grind.
 - **When context usage exceeds 35%**, finish the current step, write a handoff summary (task state, files changed, blockers, next step), then compact before continuing substantive work — trigger compaction if the harness supports it, otherwise ask the user to `/compact`.
 
@@ -100,6 +100,32 @@ with `model: "opus"` or `model: "sonnet"` set explicitly in the call.
 - Give the subagent full context when dispatching: goal, non-goals, file
   scope, acceptance criteria. Once dispatched, don't redo the same work
   yourself.
+
+## Opus orchestration mode
+
+**Applies when the running model is Opus (5.5 or later).** Opus leads: it frames
+the problem, makes the decisions, integrates, and accepts results. It delegates
+in exactly two directions:
+
+- **Labor goes to Sonnet**, per the dispatch rule above. Set `model: "sonnet"`
+  explicitly on every such call: subagents default to `inherit`, which silently
+  spends Opus on bulk work.
+- **Review goes to Fable, sparingly, as a plain subagent.** Fable costs 2.5x Opus
+  and its job here is a second opinion, never labor. Dispatch one read-only
+  Fable subagent through the Agent tool (`model: "fable"`, bounded scope, no
+  skill involved) at these checkpoints and nowhere else:
+  1. A nontrivial design or plan is settled and implementation is about to
+     start: Fable checks the approach before code exists.
+  2. A substantial change is complete and about to become a PR: Fable reads the
+     diff for correctness, not style.
+  3. Opus is stuck: two failed fix attempts on the same bug, or a decision where
+     the evidence points both ways.
+
+  Not per file, not per commit, not for edits under ~50 lines, and at most about
+  two Fable calls per task unless a reason is named. Fable's findings are input,
+  not orders: verify each against the code before acting. When a deep review is
+  wanted, call `/tribunal-review` explicitly; it seats Astra and Grok, not
+  Fable, and replaces the Fable checkpoint rather than adding to it.
 
 ## Config sync
 

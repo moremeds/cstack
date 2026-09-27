@@ -104,28 +104,41 @@ with `model: "opus"` or `model: "sonnet"` set explicitly in the call.
 ## Opus orchestration mode
 
 **Applies when the running model is Opus (5.5 or later).** Opus leads: it frames
-the problem, makes the decisions, integrates, and accepts results. It delegates
-in exactly two directions:
+the problem, makes the decisions, integrates, and accepts results. Two other
+models take part, each in one role:
 
-- **Labor goes to Sonnet**, per the dispatch rule above. Set `model: "sonnet"`
-  explicitly on every such call: subagents default to `inherit`, which silently
-  spends Opus on bulk work.
-- **Review goes to Fable, sparingly, as a plain subagent.** Fable costs 2.5x Opus
-  and its job here is a second opinion, never labor. Dispatch one read-only
-  Fable subagent through the Agent tool (`model: "fable"`, bounded scope, no
-  skill involved) at these checkpoints and nowhere else:
+- **Sonnet is the worker.** Labor goes to Sonnet under the dispatch rule above.
+  Set `model: "sonnet"` explicitly on every such call, because subagents default
+  to `inherit` and would otherwise spend Opus on bulk work.
+- **Fable is the adviser.** Opus consults Fable and Fable advises; Fable does
+  not lead, decide, or do labor. It gets no write tools and no delegation, and
+  it does not approve anything. Fable costs 2.5x Opus, so consult it sparingly,
+  at these checkpoints and nowhere else:
   1. A nontrivial design or plan is settled and implementation is about to
-     start: Fable checks the approach before code exists.
-  2. A substantial change is complete and about to become a PR: Fable reads the
-     diff for correctness, not style.
+     start: ask Fable whether the approach holds before code exists.
+  2. A substantial change is complete and about to become a PR: ask Fable to
+     read the diff for correctness, not style.
   3. Opus is stuck: two failed fix attempts on the same bug, or a decision where
-     the evidence points both ways.
+     the evidence points both ways. Ask Fable for a diagnosis or a
+     recommendation.
 
-  Not per file, not per commit, not for edits under ~50 lines, and at most about
-  two Fable calls per task unless a reason is named. Fable's findings are input,
-  not orders: verify each against the code before acting. When a deep review is
-  wanted, call `/tribunal-review` explicitly; it seats Astra and Grok, not
-  Fable, and replaces the Fable checkpoint rather than adding to it.
+  Checkpoints 1 and 3 use the built-in `advisor` tool. It is present only when
+  the `advisorModel` setting is set, and that setting is `"claude-fable-5-1"`
+  (Fable 5.1). The advisor sees the whole transcript, so there is no brief to
+  write, but it has no tools and cannot open files: it sees only the code
+  already quoted in the transcript. Checkpoint 2 needs the full diff, so it
+  uses one read-only Fable subagent through the Agent tool (`model: "fable"`,
+  bounded scope, no skill involved). When the session has no `advisor` tool, checkpoints 1 and 3 use
+  that same subagent.
+
+  Do not consult it per file, per commit, or for edits under ~50 lines, and make
+  at most about two Fable calls per task unless a reason is named. Frame each
+  call as a question and ask for a recommendation with its reasoning, not an
+  open-ended review. The advice is input, not orders. Opus checks each claim
+  against the code, accepts or rejects it, and records the reason in one line
+  when it rejects one. When a deep review is wanted, call `/tribunal-review`
+  explicitly. It seats Astra and Grok as reviewers, not Fable, and it replaces
+  the Fable checkpoint instead of adding to it.
 
 ## Config sync
 

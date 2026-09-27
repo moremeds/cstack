@@ -7,17 +7,18 @@ description: Lead-chosen transport for delegated work — native subagent, same-
 
 `$herd <task or approved plan>`
 
-Astra is the final acceptance authority for every task and the cumulative result.
-In this skill, "lead" means Astra. Other models may coordinate, execute or review,
-but cannot accept work on Astra's behalf. Astra personally checks evidence,
-resolves findings and records acceptance or rejection; this cannot be delegated.
+Astra owns scope, permission decisions and final acceptance for every task and
+the cumulative result. In this skill, "lead" means Astra. Other models may
+coordinate, execute or review, but cannot accept on Astra's behalf. Astra
+personally checks evidence, resolves findings and records acceptance or rejection.
 If Astra is unavailable, scoped execution may continue; acceptance stays open.
 
 An explicit user request to use herd means workers execute the task's bulk work;
 the lead frames, reviews and integrates. Record scope, worker, model and dispatch
 before execution. Announcing herd, reading this skill, launching an unused worker, or an
-end-of-task token audit does not count; never silently do the worker's task
-locally. If the user named a transport or model (Cursor, Devin, a model id) and
+end-of-task token audit does not count; never take over the worker's bulk task
+without the user changing the explicit herd request; small integration fixes stay with the lead.
+If the user named a transport or model (Cursor, Devin, a model id) and
 it is unavailable, report the exact block: a native substitute satisfies only
 generic delegation, not that demand. Independent preparation may continue.
 
@@ -49,32 +50,21 @@ each role, in this order:
 | **herdr agent** (any provider, any machine) | `herdr agent …` | independent, persistent, different model lineage | the role needs eyes or hands from another model (Grok, Devin, Codex, …), a remote box, or a worker that keeps state across dispatches |
 | **native subagent** | Agent tool / `collaboration.spawn_agent` | disposable | bounded labor whose result matters once: search, bulk read, extraction, mechanical edit |
 
-Route execution by model and task, not vendor. Prefer an eligible peer that
-already holds the context; otherwise favor Cursor/Devin capacity:
+Route by task and canonical model, not vendor; prefer an eligible peer with context, then Cursor/Devin capacity.
+Use native if total cost is lower without external setup. Apply this user-supplied capability/cost heuristic:
 
-| Work | Starting model (exact id, pinned) |
-| --- | --- |
-| search, extraction, bounded well-defined implementation, deterministic tool ops | Devin `swe-2-max` |
-| harder diagnosis or implementation | `claude-opus-5-5-medium` (Devin or Cursor) |
-| bounded hard reasoning or review, only when justified (expensive) | `claude-fable-5-1-medium` |
-| native extraction / coding when total cost is lower; skip external setup | `gpt-6-luna` low / `gpt-6-sol` medium, if advertised by the host |
+| Approximate tier | Models | Typical assignment |
+| --- | --- | --- |
+| strongest, most expensive | Astra, Fable | hard decisions and review when warranted |
+| 1.1 | Opus 5.5 | harder diagnosis or implementation |
+| 2 | GPT-6 Sol | scoped implementation |
+| 2.5 | Grok 4.7 | bounded independent review when eligible |
+| lower execution tier (unnumbered) | Sonnet 5, GPT-6 Luna, SWE | search, extraction, clear implementation |
 
-Grok 4.7 is not a default executor. SWE-2 was listed Free by the local CLI on
-2026-09-28 (user reports free through 2026-10-31; expiry unverified): recheck
-price at dispatch and after that date. Verify ids once per task (`devin models
-list`, `cursor-agent --list-models`), cache raw output to a file, bring only
-candidate ids and prices into context; never silently substitute Auto/Fusion or
-an alias. Caller-mandated aliases need identity evidence. Record requested and
-observed separately; a listed model is not serving proof. A Devin role may take a
-reported per-task `--model`
-override (Opus/Fable). Cost is worker tokens plus lead setup, rereads and
-retries; do not claim unmeasured savings.
-
-SWE is never a reviewer or voting seat. Reviewer composition belongs to the
-calling workflow (§6), including any required Fable/Astra pairing and transport.
-Do not downgrade a required seat; unavailable or unverified identity leaves it
-open. Otherwise a fresh independent Fable on Cursor/Devin may review with
-read-only permissions; provider alone does not determine review eligibility.
+These are routing estimates, not measured benchmarks or equal-price claims.
+SWE is executor-only. Required review seats stay with the calling workflow;
+do not downgrade them. Exact verified CLI ids, price checks, identity evidence,
+and dispatch costs are in `references/herdr-cli.md`.
 
 Rules that hold across all three:
 
@@ -225,6 +215,16 @@ reviewer composition and review verdict (`tribunal-review`, `seesaw-review`); he
 supplies transport only, and reviewers get a read-only assignment, not the
 commit contract. Worker reports, green tests and review votes are inputs, not
 acceptance. Astra verifies every deliverable and the cumulative result itself.
+An author may test, diagnose and fix their work, but cannot review it: the
+reviewer must use a different canonical model (Astra, Fable, Opus, Sol, Grok,
+Sonnet, Luna or SWE), regardless of provider, session, version or effort; SWE remains executor-only.
+Different models in the same tier may review one another when competent and allowed by the caller.
+For a mixed-model diff, each substantive part needs reviewer coverage by a
+different model from its author. If Astra authored substantive changes, obtain
+that independent review before Astra accepts. Record canonical author/reviewer
+models and requested/observed identities; unknown or conflicting canonical routing identity cannot
+satisfy required independence. A fresh pane or Cursor-to-Devin switch does not
+create model independence.
 
 ## 7. Teardown
 

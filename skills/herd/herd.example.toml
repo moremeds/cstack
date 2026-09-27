@@ -31,10 +31,6 @@ role = "scoped implementation with tests, one plan task per dispatch"
 machine = "local"
 # Use only for an approved implementation task; edits stay in the workspace.
 args = ["--model", "swe-2-max", "--permission-mode", "accept-edits", "--sandbox"]
-# Discovery examples only, not blanket approval by executable name. The task
-# contract binds commands plus arguments, cwd, paths and external effects.
-preapproved = ["ls", "cat", "find", "du", "stat", "head", "wc", "git log", "git status"]
-
 [[worker]]
 name = "cursor-implementer"
 kind = "cursor"

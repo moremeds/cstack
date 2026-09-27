@@ -52,3 +52,41 @@ deliverable, milestone and cumulative result requires Astra's own evidence check
 and acceptance; worker reports, passing tests and reviewer votes cannot close
 that gate. Other models may coordinate execution. If Astra is unavailable,
 acceptance remains open. This does not replace required user authorization.
+
+## Model-independent review and user routing tiers
+
+The user subsequently prohibited review by the same canonical model, even across
+providers, sessions, versions or effort settings. The earlier Cursor/Opus check
+of Devin/Opus work is retained as historical diagnostic feedback, but is not
+counted as independent review under this rule. Sol 6 implements the new rule;
+a fresh Cursor/Fable reviewer is assigned the complete cumulative candidate,
+whose substantive authors are Opus, Astra and Sol. Astra owns final acceptance.
+The new tier table records the user's approximate routing preference, not a
+measured benchmark or a claim that models sharing a tier have equal prices.
+
+Fable's cumulative review exercised seven cases: cross-provider Opus self-review
+(rejected), Astra-authored work (different-model review before acceptance),
+Sol-to-Fable review, Fable-to-Astra review, eligible same-tier different models,
+unknown identity, and scoped approval versus production deletion. Sol corrected
+the material findings: stale Claude acceptance ownership, coordinator authority,
+and configured-model evidence criteria. It also tied release authorization to
+the user, prohibited disclosed bulk takeover without changing the herd request,
+and removed an inert example permission key. The lead checked these corrections.
+
+Configured canonical identity uses host-controlled model selection and available
+runtime labels, not worker self-description. This run selected native Sol 6 via
+the host spawn tool and Cursor Fable 5.1 via explicit launch arguments; the
+Cursor label displayed Fable 5.1. Provider-serving attestation remains unverified.
+Fable's own full test attempt had three errors because its read-only sandbox
+blocked temporary Git initialization; that does not establish a code regression
+or reproduce the lead's passing test run. No new unit test claims to enforce
+semantic agent behavior; the scenario review is retained as behavioral evidence.
+
+Fable's follow-up confirmed M1–M3 and L1–L3 resolved and reported no remaining
+blockers. The lead independently read the cumulative changes and accepted them.
+Final lead verification: 124 tests passed; Herd and Orchestrate skill validation
+and diff checks passed. Worker `herd_model_rules` (native Sol 6) completed six
+assigned files without committing. Reviewer `herd-fable-review` (Cursor Fable
+5.1, pane `w3:pH`) made no edits; its initial and follow-up reports were saved
+in lead-local Git administrative storage before closing the task-created pane.
+Astra retains acceptance for all tasks; the Claude rule correction is deliberate.

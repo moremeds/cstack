@@ -48,6 +48,8 @@ and lighter execution for routine work. User-selected pairs win. If unsupported,
 disclose a supported alternative rather than silently substituting. Narrow or
 escalate a reasoning-blocked assignment instead of repeating it unchanged.
 Do not change global defaults or claim an unavailable model switch.
+For cross-provider routing, use the user's approximate tiers in
+`skills/herd/SKILL.md` §2; they are a heuristic, not measured quality or price.
 
 ## 3. Dispatch
 
@@ -89,7 +91,8 @@ Use native wait/status and messaging, not log polling. Relay corrections,
 interrupt stale work before reassigning files, and keep still-valid evidence.
 Timeout, silence, and unavailable models are not success. Retry after a meaningful
 change; otherwise complete the subtask locally or report its blocker. An explicit herd
-request forbids silent local takeover; follow herd's escalation instead.
+request forbids taking over bulk work locally unless the user changes that requirement;
+small integration fixes stay with the lead. Follow herd's escalation instead.
 
 ## 5. Acceptance and delivery
 
@@ -97,6 +100,16 @@ Wait for every required deliverable. Inspect worker changes and evidence against
 the original acceptance criteria; a worker's "done" is not verification. Resolve
 conflicts, then run the smallest relevant integration check on the combined result.
 For plans/research, check evidence and consistency instead of inventing code tests.
+An author may test, diagnose and fix their own work but cannot provide its
+independent review. Match reviewers by canonical model, not provider, session,
+version or effort: Opus cannot review Opus. For mixed-model work, each
+substantive part needs a different-model reviewer; Astra-authored changes need
+one before Astra accepts. Record each author's and reviewer's canonical model
+and requested/observed identity. Unknown or conflicting canonical routing
+identity leaves required independence unverified. A host-controlled selection
+record plus runtime label where exposed is configured routing evidence, not
+provider-serving attestation (see `skills/herd/references/herdr-cli.md`).
+Keep any caller's required review seats unchanged.
 
 End with the outcome, actual agent/model/effort selections supported by tool
 results (label requested-only settings), verification, and unresolved items.

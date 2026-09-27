@@ -123,9 +123,9 @@ models take part, each in one role:
      recommendation.
 
   Checkpoints 1 and 3 use the built-in `advisor` tool, which runs when the
-  `advisorModel` setting names Fable. The advisor already sees the whole
-  transcript, so there is no brief to write, but it has no tools and cannot
-  read code. Checkpoint 2 needs the code, so it uses one read-only Fable
+  `advisorModel` setting is `"claude-fable-5-1"` (Fable 5.1). The advisor sees
+  the whole transcript, so there is no brief to write, but it has no tools and
+  cannot read code. Checkpoint 2 needs the code, so it uses one read-only Fable
   subagent through the Agent tool (`model: "fable"`, bounded scope, no skill
   involved). When the session has no `advisor` tool, checkpoints 1 and 3 use
   that same subagent.

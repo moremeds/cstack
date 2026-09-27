@@ -37,9 +37,8 @@ not a fixed team or measured performance claims:
 
 | Work characteristics | Starting choice |
 | --- | --- |
-| Clear extraction, bounded documentation lookup, mechanical checks | `gpt-5.6-luna` / `low` |
-| Read-heavy exploration, tracing an existing path | `gpt-5.6-terra` / `medium` |
-| Scoped implementation with known acceptance | `gpt-5.6-sol` / `medium` |
+| Clear extraction, bounded lookup or search, mechanical checks | `gpt-6-luna` / `low` |
+| Scoped implementation with known acceptance, tracing an existing path | `gpt-6-sol` / `medium` |
 | Ambiguous design, difficult diagnosis, security/money/data-loss review | `gpt-6-astra` / `medium` |
 
 Adjust to uncertainty and impact; use stronger reasoning for difficult decisions
@@ -75,16 +74,20 @@ task's isolated worktree. For shared files, use read-only help or transfer exclu
 ownership after the previous writer stops and returns changes. The lead integrates.
 Serialize tests that need a stable tree or use separate worktrees when required.
 
-The lead owns shared integration files, commits, PRs, and release actions.
-Workers must preserve pre-existing changes and must not commit, merge, publish,
-or change unrelated files. A prompt's read-only instruction is not a sandbox;
+The lead owns shared integration files, commits, PRs, and release actions. The
+one exception is a `herd` execution contract that names explicit
+caller-authorized release steps; the lead still approves and reviews them.
+Workers must preserve pre-existing changes and must not change unrelated files.
+Commits, merges and publishing are forbidden except for the explicit herd
+contract steps above. A prompt's read-only instruction is not a sandbox;
 use an actual read-only capability when the host offers one and disclose when
 access control is only by instruction.
 
 Use native wait/status and messaging, not log polling. Relay corrections,
 interrupt stale work before reassigning files, and keep still-valid evidence.
 Timeout, silence, and unavailable models are not success. Retry after a meaningful
-change; otherwise complete the subtask locally or report its blocker.
+change; otherwise complete the subtask locally or report its blocker. An explicit herd
+request forbids silent local takeover; follow herd's escalation instead.
 
 ## 5. Acceptance and delivery
 

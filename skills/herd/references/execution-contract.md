@@ -21,7 +21,9 @@ project rules, memory index and task skills. Report actual paths, cwd, model
 and task boundaries. Do not assume discovery proves loading. Do not invoke
 the parent workflow again or spawn further workers.
 
-1. Scope. Implement only the tasks in this plan, in order. Anything the
+1. Scope. One task may contain sequential steps toward one accepted deliverable;
+   do not create a review round for every command. Implement only the tasks in
+   this plan, in order. Anything the
    plan does not name is out of scope; report it, do not do it.
 2. Files. You own: <globs>. You never write: <globs, e.g. data lake,
    ledgers, production config>. If your CLI runs in bypass mode nothing
@@ -44,7 +46,11 @@ the parent workflow again or spawn further workers.
 5. Commits. Follow the caller's commit policy. When commits are authorized,
    commit the cohesive task using <repo-style message>. With no commits,
    return the diff and evidence and report `commit none`; never stage or
-   commit just to satisfy this template. No push, PR, merge or deployment. No
+   commit just to satisfy this template. No push, PR, merge, deployment or
+   release operation except these caller-authorized release steps: <none |
+   exact runbook steps with bounds, checkpoints, invariants, stop conditions>.
+   Default is none. The lead authorizes these steps in the contract, reviews
+   their results, and owns acceptance. No
    attribution trailers: no `Co-Authored-By`, no `Generated with`. Workers
    add these by default, so this rule is repeated in every dispatch and
    the gate rejects a commit that carries one.
@@ -55,9 +61,12 @@ the parent workflow again or spawn further workers.
 7. Rejections. If the lead replies `herd-reject <n>: <reason>`, fix on top
    under the same commit policy and report again; never rewrite or amend a
    rejected commit, and preserve pre-existing work in no-commit mode.
-8. Blocked. For a permission prompt, the lead answers only prompts
-   listed here: <pre-approved prompts, e.g. "edit files under src/">, and
-   everything else goes to the user. A worker is never started with a
+8. Blocked. Scope already authorized by the user: <pre-approved prompts with
+   commands, cwd, paths and external effects, e.g. "edit files under src/">.
+   The lead checks the full current action against that authorization, answers
+   matching prompts once without reasking, and confirms execution resumed.
+   Anything outside it goes to the user; destructive actions still require
+   the user's chosen confirmation phrase. A worker is never started with a
    bypass/dangerous permission mode unless the user approved it for
    this specific run; the roster's `args` is not that approval.
 9. Deviations. Any step you could not do as written is a deviation. Name it

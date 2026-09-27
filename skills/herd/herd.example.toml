@@ -31,9 +31,24 @@ role = "scoped implementation with tests, one plan task per dispatch"
 machine = "local"
 # Use only for an approved implementation task; edits stay in the workspace.
 args = ["--model", "swe-2-max", "--permission-mode", "accept-edits", "--sandbox"]
-# command classes the lead may approve on the user's behalf when a dialog
-# appears; everything else goes to the user. Absent = nothing pre-approved.
+# Discovery examples only, not blanket approval by executable name. The task
+# contract binds commands plus arguments, cwd, paths and external effects.
 preapproved = ["ls", "cat", "find", "du", "stat", "head", "wc", "git log", "git status"]
+
+[[worker]]
+name = "cursor-implementer"
+kind = "cursor"
+role = "scoped implementation for harder tasks, one plan task per dispatch"
+machine = "local"
+# No --force/--yolo: the lead answers prompts under the task's authorization.
+args = ["--model", "claude-opus-5-5-medium", "--sandbox", "enabled"]
+
+[[worker]]
+name = "cursor-adviser"
+kind = "cursor"
+role = "optional Fable adviser, read-only; not a required review seat"
+machine = "local"
+args = ["--mode", "ask", "--model", "claude-fable-5-1-medium"]
 
 [[worker]]
 name = "bench"

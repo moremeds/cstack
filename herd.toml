@@ -30,6 +30,20 @@ machine = "local"
 args = ["--model", "swe-2-max", "--permission-mode", "accept-edits", "--sandbox"]
 
 [[worker]]
+name = "cursor-implementer"
+kind = "cursor"
+role = "scoped implementation for harder tasks, one plan task per dispatch"
+machine = "local"
+args = ["--model", "claude-opus-5-5-medium", "--sandbox", "enabled"]
+
+[[worker]]
+name = "cursor-adviser"
+kind = "cursor"
+role = "optional Fable adviser, read-only; not a required review seat"
+machine = "local"
+args = ["--mode", "ask", "--model", "claude-fable-5-1-medium"]
+
+[[worker]]
 name = "mini-runner"
 kind = "devin"
 role = "run and verify on the production box; read-only unless the plan says otherwise"

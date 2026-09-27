@@ -69,6 +69,23 @@ herdr agent start implementer --kind devin --pane "$P" --timeout 60000 -- --mode
 herdr agent wait implementer --until idle --timeout 60000
 ```
 
+Before launch, check from the lead's environment (not a nested CLI inside the
+worker sandbox, whose own log writes may need unrelated access) that the worker
+will load the shared setup: for Devin, `devin rules list` and `devin skills list`
+in the actual worktree (global rule entry `~/.config/devin/AGENTS.md`, shared
+skills in `~/.agents/skills`). Reuse bootstrap links, not a separate policy copy.
+Cache `devin models list` / `cursor-agent --list-models` output to a task file
+and pin the exact id in `--model`; a per-task override of a roster model is
+passed the same way and reported. Cursor writers run without `--force`/`--yolo`
+and answer prompts under the blocked rules below; Cursor advisers use
+`--mode ask`.
+A roster executor may investigate read-only: record the narrower assignment and
+start its fresh instance with `--permission-mode auto --sandbox` for Devin, or
+`--mode ask` for Cursor. This is a restriction of the role, not a new role.
+For an explicitly authorized write run, a recorded Devin override may use
+`--permission-mode accept-edits --sandbox`; `auto` can also retain per-action
+prompts. Neither mode authorizes external effects or bypasses the contract.
+
 For restricted tribunal reviewers, append `--add-dir <seat-input-dir>` to the
 roster args at `herdr agent start`. This directory is prepared per review;
 its path does not belong in the static roster. See tribunal's herd-panel reference.
@@ -152,11 +169,13 @@ herdr agent read implementer --source recent-unwrapped --lines 20
 
 For a prompt outside the task's existing authorization, show the dialog and
 ask the user what to answer. When the execution contract already authorizes
-that prompt, the lead answers without asking again
-with `herdr agent send-keys implementer <key>`. Devin's menus are numbered
-(`1` = approve once), so a pre-approved answer is `send-keys implementer 1 enter`.
-For writers, translate the task's existing authorization into scoped permission
-rules or answer matching prompts without asking the user again. Use Devin's
+that exact action (command, arguments, cwd, paths, network, external effects),
+the lead answers without asking again with `herdr agent send-keys implementer
+<key>`. Menus are numbered and the numbering varies: pick the key whose label
+approves this action once, never an "always allow" or bypass option, and never
+send a blind `y`/`1`. Re-read the pane afterwards to confirm the worker resumed.
+Answer matching prompts without asking the user again; do not install standing
+allow rules as a substitute for checking the action. Use Devin's
 `--permission-mode accept-edits` when workspace edits are authorized; it does
 not preapprove every shell command. Keep `auto` for read-only work. Reviewers
 use their own restrictive mode, never an implementation bypass flag.

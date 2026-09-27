@@ -13,7 +13,9 @@ do not add a scheduler, direct completion API, or persistent agent files.
 
 ## 1. Lead and scope
 
-- Astra (`gpt-6-astra`) owns scope, decisions, integration, and final acceptance.
+- Astra (`gpt-6-astra`) owns scope, decisions, integration, and final acceptance
+  of every deliverable and the cumulative result. No coordinator, worker or
+  reviewer may accept on Astra's behalf; their reports and votes are inputs.
   Lead here if already Astra; keep the current effort unless the host supports
   changing it. Read relevant guidance and artifacts to establish acceptance,
   dependencies, risk, and the bottleneck.

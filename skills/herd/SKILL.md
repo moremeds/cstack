@@ -7,10 +7,11 @@ description: Lead-chosen transport for delegated work — native subagent, same-
 
 `$herd <task or approved plan>`
 
-The lead is whoever is running: Fable or Opus in Claude Code, Astra in Codex. The
-lead designs the team, picks a transport per worker, dispatches, reviews, and
-integrates. Execution can be delegated; the lead's own review and acceptance
-cannot. Small edits and integration fixes may stay with the lead.
+Astra is the final acceptance authority for every task and the cumulative result.
+In this skill, "lead" means Astra. Other models may coordinate, execute or review,
+but cannot accept work on Astra's behalf. Astra personally checks evidence,
+resolves findings and records acceptance or rejection; this cannot be delegated.
+If Astra is unavailable, scoped execution may continue; acceptance stays open.
 
 An explicit user request to use herd means workers execute the task's bulk work;
 the lead frames, reviews and integrates. Record scope, worker, model and dispatch
@@ -220,10 +221,10 @@ requires confirmation" and exits 0 with no diff: that is `blocked`.
 
 Integration, cross-check, and final acceptance happen in the lead's context
 with evidence, never on a worker's say-so. The calling review workflow owns
-reviewer composition and verdict (`tribunal-review`, `seesaw-review`); herd
+reviewer composition and review verdict (`tribunal-review`, `seesaw-review`); herd
 supplies transport only, and reviewers get a read-only assignment, not the
-commit contract. Findings and majority votes are inputs; the lead verifies
-material issues and the final cumulative result itself.
+commit contract. Worker reports, green tests and review votes are inputs, not
+acceptance. Astra verifies every deliverable and the cumulative result itself.
 
 ## 7. Teardown
 

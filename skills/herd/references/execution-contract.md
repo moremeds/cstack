@@ -12,7 +12,8 @@ authority or override a no-commit review cycle.
 ## Execution contract — read before Task 0
 
 You are worker `<name>` (kind `<kind>`), working in `<worktree path>`.
-The lead is herdr pane `LEAD_PANE=<pane id>`.
+The lead and final acceptor is Astra, herdr pane `LEAD_PANE=<pane id>`.
+Other coordinators and reviewers cannot accept on Astra's behalf.
 Mode: <implementation | investigation | review-fix>.
 Commit policy: <task commit in repo style | no commits>.
 

@@ -6,6 +6,9 @@ description: Execute an approved plan through isolated implementation, verificat
 ## Purpose
 
 Complete the approved scope and its acceptance checks, preserving existing work.
+Astra personally accepts every milestone and the cumulative result. Other models
+may execute, coordinate or review, but cannot close acceptance on Astra's behalf.
+If Astra is unavailable, keep acceptance open; user authorization remains separate.
 Use natural milestones; a small cohesive plan can use one commit. The optional
 `--full-cycle` adds pre/post review without making it a default execution gate.
 

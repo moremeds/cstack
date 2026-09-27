@@ -43,3 +43,12 @@ CLI labels and launch arguments establish configured models, not independently v
 - Behavioral checks are advisory simulations; they do not prove every future agent will obey. The new dispatch/artifact/acceptance requirements make violations inspectable rather than invisible.
 
 Delivery is a PR. Merge, installed-skill activation and remote-machine rollout are separate, not claimed here.
+
+## Acceptance ownership clarification
+
+The user clarified that Astra is the final judge for all work. Herd now defines
+its lead as Astra, rather than whichever model happens to be running. Every
+deliverable, milestone and cumulative result requires Astra's own evidence check
+and acceptance; worker reports, passing tests and reviewer votes cannot close
+that gate. Other models may coordinate execution. If Astra is unavailable,
+acceptance remains open. This does not replace required user authorization.

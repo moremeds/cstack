@@ -122,12 +122,13 @@ models take part, each in one role:
      the evidence points both ways. Ask Fable for a diagnosis or a
      recommendation.
 
-  Checkpoints 1 and 3 use the built-in `advisor` tool, which runs when the
-  `advisorModel` setting is `"claude-fable-5-1"` (Fable 5.1). The advisor sees
-  the whole transcript, so there is no brief to write, but it has no tools and
-  cannot read code. Checkpoint 2 needs the code, so it uses one read-only Fable
-  subagent through the Agent tool (`model: "fable"`, bounded scope, no skill
-  involved). When the session has no `advisor` tool, checkpoints 1 and 3 use
+  Checkpoints 1 and 3 use the built-in `advisor` tool. It is present only when
+  the `advisorModel` setting is set, and that setting is `"claude-fable-5-1"`
+  (Fable 5.1). The advisor sees the whole transcript, so there is no brief to
+  write, but it has no tools and cannot open files: it sees only the code
+  already quoted in the transcript. Checkpoint 2 needs the full diff, so it
+  uses one read-only Fable subagent through the Agent tool (`model: "fable"`,
+  bounded scope, no skill involved). When the session has no `advisor` tool, checkpoints 1 and 3 use
   that same subagent.
 
   Do not consult it per file, per commit, or for edits under ~50 lines, and make

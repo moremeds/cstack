@@ -1,6 +1,6 @@
 ---
 name: seesaw-review
-description: Review a bounded bug-fix patch for regressions in related behavior. Verify the original fix and preserved contracts with a lead and one independent Fable/Astra peer. Use for focused fixes to shared paths, error handling, filtering, fallback, retry, or scheduling; ordinary nonfunctional edits need only self-review.
+description: Review a bounded bug-fix patch for regressions in related behavior. Verify the original fix and preserved contracts with a lead and one independent different-model peer. Use for focused fixes to shared paths, error handling, filtering, fallback, retry, or scheduling; ordinary nonfunctional edits need only self-review.
 ---
 
 # Seesaw Review
@@ -77,8 +77,9 @@ host; missing required evidence remains a gate gap, not a passing caveat.
 
 ## 4. One independent peer
 
-Use `herd` for one read-only independent seat: Fable for an Astra lead, Astra for
-a Claude Code lead (Fable or Opus). Verify serving identity; no downgrade or substitution. Optional
+Use `herd` for one read-only independent seat: Opus 5.5 for a Codex Sol lead,
+Fable for an Astra lead, or Astra for a Claude Code lead (Fable or Opus).
+Verify serving identity; no silent substitution. Optional
 Cursor uses verified Grok 4.7 or newer; Devin may execute authorized checks or
 fixes but never review or vote. If the required peer is unavailable, report the
 missing gate and continue useful lead checks without a passing verdict.

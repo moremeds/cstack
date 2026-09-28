@@ -91,7 +91,7 @@ The lead owns the review, even when workers provide execution capacity:
 - `tribunal-review` remains the only Pass-2 reviewer workflow and owns reviewer
   selection. It delegates execution transport to `herd`; this skill does not
   launch or manage reviewer CLIs.
-- Tribunal's required peer is Fable for an Astra lead and Astra for a Claude
+- Tribunal's required peer is Fable for a Codex lead (Sol or Astra) and Astra for a Claude
   Code lead (Fable or Opus). Do not downgrade or replace that peer; its absence or unverified model
   identity leaves the independent gate open, even if Cursor answered.
 - After the lead's initial findings exist, `herd` may run a bounded

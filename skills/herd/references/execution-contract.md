@@ -12,9 +12,9 @@ authority or override a no-commit review cycle.
 ## Execution contract — read before Task 0
 
 You are worker `<name>` (kind `<kind>`), working in `<worktree path>`.
-The lead and final acceptor is Astra; `LEAD_PANE=<pane id>` receives reports.
-A non-Astra coordinator forwards reports and blocked prompts to Astra, and
-cannot accept or expand scope on Astra's behalf.
+The operational lead and final acceptor is <lead/model>;
+`LEAD_PANE=<pane id>` receives reports. Advisers and workers cannot accept or
+expand scope on the lead's behalf.
 Mode: <implementation | investigation | review-fix>.
 Commit policy: <task commit in repo style | no commits>.
 
@@ -67,9 +67,9 @@ the parent workflow again or spawn further workers.
    rejected commit, and preserve pre-existing work in no-commit mode.
 8. Blocked. Scope already authorized by the user: <pre-approved prompts with
    commands, cwd, paths and external effects, e.g. "edit files under src/">.
-   Astra checks the full current action against that authorization, answers
+   The lead checks the full current action against that authorization, answers
    matching prompts once without reasking, and confirms execution resumed;
-   a coordinator forwards the prompt to Astra.
+   a coordinator forwards the prompt to the lead.
    Anything outside it goes to the user; destructive actions still require
    the user's chosen confirmation phrase. A worker is never started with a
    bypass/dangerous permission mode unless the user approved it for
@@ -87,7 +87,7 @@ Reviewer checklist (the lead runs this on every `herd-report`):
   including untracked files, not only `git show --stat <sha>`)
 - deviations either accepted in the reply or the task is rejected
 - record each substantive part's author and any reviewer by canonical model;
-  the author may test and fix but cannot review that part, even through another
+  the author may test and fix but cannot be its independent reviewer, even through another
   provider, session, version or effort; unknown or conflicting canonical routing identity leaves required
   independent review open
 - record reasons for material findings; integrate and verify before acceptance

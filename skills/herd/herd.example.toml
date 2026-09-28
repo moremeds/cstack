@@ -13,14 +13,21 @@ args = ["--mode", "ask", "--model", "grok-4.7-high"]
 [[worker]]
 name = "review-fable"
 kind = "claude"
-role = "independent read-only peer for an Astra lead"
+role = "independent read-only peer for a Codex lead when required"
 machine = "local"
 args = ["--model", "fable", "--restricted", "--strict-mcp-config", "--tools", "Read,Grep,Glob"]
 
 [[worker]]
+name = "review-opus"
+kind = "cursor"
+role = "independent read-only Opus peer for a Codex Sol lead"
+machine = "local"
+args = ["--model", "claude-opus-5-5-medium", "--mode", "ask"]
+
+[[worker]]
 name = "review-astra"
 kind = "codex"
-role = "independent read-only peer for a Claude Fable lead"
+role = "independent read-only peer for a Claude Code lead when required"
 machine = "local"
 args = ["--model", "gpt-6-astra", "--sandbox", "read-only"]
 

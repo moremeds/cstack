@@ -6,9 +6,14 @@ description: Execute an approved plan through isolated implementation, verificat
 ## Purpose
 
 Complete the approved scope and its acceptance checks, preserving existing work.
-Astra personally accepts every milestone and the cumulative result. Other models
-may execute, coordinate or review, but cannot close acceptance on Astra's behalf.
-If Astra is unavailable, keep acceptance open; user authorization remains separate.
+The operational lead personally accepts every milestone and the cumulative
+result. Use Opus 5.5 in Claude Code or GPT-6 Sol in Codex by default, unless
+the user chooses another capable lead. Workers and advisers cannot close
+acceptance on the lead's behalf; user authorization remains separate.
+If this starts on Astra or Fable without a user choice of that lead, hand the
+complete plan execution, integration, review, acceptance and delivery to an
+eligible Sol or Opus lead. The outer model relays the result. If unavailable,
+disclose the actual model and continue authorized work as needed.
 Use natural milestones; a small cohesive plan can use one commit. The optional
 `--full-cycle` adds pre/post review without making it a default execution gate.
 

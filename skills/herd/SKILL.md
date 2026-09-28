@@ -7,11 +7,13 @@ description: Lead-chosen transport for delegated work — native subagent, same-
 
 `$herd <task or approved plan>`
 
-Astra owns scope, permission decisions and final acceptance for every task and
-the cumulative result. In this skill, "lead" means Astra. Other models may
-coordinate, execute or review, but cannot accept on Astra's behalf. Astra
-personally checks evidence, resolves findings and records acceptance or rejection.
-If Astra is unavailable, scoped execution may continue; acceptance stays open.
+The lead owns scope, authorized permission decisions, integration and final acceptance.
+Default: Opus 5.5 (Claude Code) or GPT-6 Sol (Codex), unless the user chooses another capable lead.
+Fable/Astra give bounded hard/risky advice or required review; the lead checks evidence and accepts.
+On Astra/Fable invocation without user choice, transfer the full lead role to an eligible Sol/Opus
+peer or native agent, including scope, dispatch, integration, review, acceptance and delivery.
+The outer model relays concise results and advises only on bounded escalation; if transfer is
+unavailable, disclose the actual model and continue authorized work without claiming Sol/Opus led it.
 
 An explicit user request to use herd means workers execute the task's bulk work;
 the lead frames, reviews and integrates. Record scope, worker, model and dispatch
@@ -55,16 +57,15 @@ Use native if total cost is lower without external setup. Apply this user-suppli
 
 | Approximate tier | Models | Typical assignment |
 | --- | --- | --- |
-| strongest, most expensive | Astra, Fable | hard decisions and review when warranted |
-| 1.1 | Opus 5.5 | harder diagnosis or implementation |
-| 2 | GPT-6 Sol | scoped implementation |
+| strongest, most expensive | Astra, Fable | bounded advice and review when warranted |
+| 1.1 | Opus 5.5 | Claude Code operational lead, harder diagnosis or implementation |
+| 2 | GPT-6 Sol | Codex operational lead, scoped implementation |
 | 2.5 | Grok 4.7 | bounded independent review when eligible |
 | lower execution tier (unnumbered) | Sonnet 5, GPT-6 Luna, SWE | search, extraction, clear implementation |
 
-These are routing estimates, not measured benchmarks or equal-price claims.
-SWE is executor-only. Required review seats stay with the calling workflow;
-do not downgrade them. Exact verified CLI ids, price checks, identity evidence,
-and dispatch costs are in `references/herdr-cli.md`.
+These are routing estimates, not measured benchmarks or equal-price claims. SWE is executor-only.
+Required review seats stay with the calling workflow; do not downgrade them. Exact verified CLI ids,
+price checks, identity evidence and dispatch costs are in `references/herdr-cli.md`.
 
 Rules that hold across all three:
 
@@ -214,14 +215,13 @@ with evidence, never on a worker's say-so. The calling review workflow owns
 reviewer composition and review verdict (`tribunal-review`, `seesaw-review`); herd
 supplies transport only, and reviewers get a read-only assignment, not the
 commit contract. Worker reports, green tests and review votes are inputs, not
-acceptance. Astra verifies every deliverable and the cumulative result itself.
-An author may test, diagnose and fix their work, but cannot review it: the
+acceptance. The lead verifies every deliverable and the cumulative result.
+An author may test, diagnose and fix their work, but cannot serve as its independent reviewer: the
 reviewer must use a different canonical model (Astra, Fable, Opus, Sol, Grok,
 Sonnet, Luna or SWE), regardless of provider, session, version or effort; SWE remains executor-only.
 Different models in the same tier may review one another when competent and allowed by the caller.
-For a mixed-model diff, each substantive part needs reviewer coverage by a
-different model from its author. If Astra authored substantive changes, obtain
-that independent review before Astra accepts. Record canonical author/reviewer
+When independent review is required, cover each substantive part of a mixed-model
+diff with a different-model reviewer before acceptance. Record canonical author/reviewer
 models and requested/observed identities; unknown or conflicting canonical routing identity cannot
 satisfy required independence. A fresh pane or Cursor-to-Devin switch does not
 create model independence.

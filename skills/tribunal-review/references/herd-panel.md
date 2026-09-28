@@ -7,11 +7,12 @@ worker transport only. Do not delegate the tribunal workflow itself.
 
 ## Seats and startup
 
-- Astra lead: Claude Fable peer; Claude Fable lead: Codex Astra peer. Cursor uses
+- Codex Sol or Astra lead: Claude Fable peer; Claude Code Opus or Fable lead:
+  Codex Astra peer. Cursor uses
   verified Grok 4.7 (`grok-4.7-high`) or a newer available Grok, pinned for this review. Devin is
   never a reviewer, debate participant or voting seat, even in a fresh pane.
-- Fable/Astra is a required pairing, not a cost preference. Do not downgrade
-  to Opus or Sol, pass an automatic fallback model, or let Cursor replace the
+- The named peer is a required review seat, not a cost preference. Do not
+  downgrade it to Opus or Sol, pass an automatic fallback model, or let Cursor replace the
   required peer. Missing or unverified peer identity leaves the gate open.
 - Choose roster entries with explicit reviewer permissions. Example interactive
   arguments (verify local help and model availability before launch):

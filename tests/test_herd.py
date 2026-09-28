@@ -83,6 +83,9 @@ class TestRoster(unittest.TestCase):
                 if w["name"] == "reviewer":
                     self.assertEqual(args[args.index("--mode") + 1], "ask")
                     self.assertEqual(args[args.index("--model") + 1], "grok-4.7-high")
+                elif w["name"] == "review-opus":
+                    self.assertEqual(args[args.index("--mode") + 1], "ask")
+                    self.assertEqual(args[args.index("--model") + 1], "claude-opus-5-5-medium")
                 elif w["name"] == "cursor-implementer":
                     self.assertEqual(args[args.index("--model") + 1], "claude-opus-5-5-medium")
                     self.assertEqual(args[args.index("--sandbox") + 1], "enabled")
@@ -99,7 +102,7 @@ class TestRoster(unittest.TestCase):
 
     def test_repo_and_example_reviewer_settings_agree(self):
         actual = tomllib.loads((ROOT / "herd.toml").read_text())
-        shared = ("reviewer", "review-fable", "review-astra",
+        shared = ("reviewer", "review-fable", "review-opus", "review-astra",
                   "cursor-implementer", "cursor-adviser")
         expected = {w["name"]: w["args"] for w in self.doc["worker"] if w["name"] in shared}
         self.assertEqual(set(expected), set(shared))

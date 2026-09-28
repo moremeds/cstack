@@ -14,10 +14,11 @@ herdr status | grep -q 'endpoint_compatible: yes'
 
 ## Discover
 
-A non-Astra coordinator may dispatch, collect results, and prepare evidence and
-teardown records within Astra's contract. Astra owns scope, permission decisions,
-review findings and final acceptance; the coordinator forwards reports and
-blocked prompts, and does not issue `herd-continue` on its own authority.
+A coordinator may dispatch, collect results and prepare evidence and teardown
+records within the operational lead's contract. The lead owns scope, permission
+decisions within authorization, review findings and final acceptance; the
+coordinator forwards reports and blocked prompts, and does not issue
+`herd-continue` on its own authority.
 
 ```bash
 herdr agent list                       # initial discovery; JSON: .result.agents[] {agent, agent_status, pane_id, cwd}
@@ -188,10 +189,10 @@ herdr agent get implementer
 herdr agent read implementer --source recent-unwrapped --lines 20
 ```
 
-For any blocked prompt, a non-Astra coordinator forwards it to Astra. Astra
+For any blocked prompt, a coordinator forwards it to the lead. The lead
 checks the exact action (command, arguments, cwd, paths, network, external
-effects) against existing user authorization. If outside it, Astra shows the
-dialog and must ask the user what to answer. If already authorized, Astra answers
+effects) against existing user authorization. If outside it, the lead shows the
+dialog and must ask the user what to answer. If already authorized, the lead answers
 without asking again with `herdr agent send-keys implementer
 <key>`. Menus are numbered and the numbering varies: pick the key whose label
 approves this action once, never an "always allow" or bypass option, and never

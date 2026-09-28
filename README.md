@@ -19,7 +19,7 @@
 
 | When you need to… | Use |
 | --- | --- |
-| let Astra design and coordinate a task-specific agent team | `$orchestrate <task>` |
+| coordinate a task-specific native agent team | `$orchestrate <task>` |
 | drive long-lived workers across sessions, models, and machines | `$herd <task>` |
 | find out what is actually happening | `/whatup` |
 | execute an already-approved plan | `/execute-plan <plan-path>` |
@@ -28,8 +28,13 @@
 | get an independent cross-model review | `/tribunal-review <target>` |
 
 cstack is a Claude Code and Codex skills plugin. The seven skills install
-together and share source files. `orchestrate` requires a host with native
-subagents and access to Astra; installing the plugin does not supply those capabilities.
+together and share source files. `orchestrate` uses native subagents when
+available; installing the plugin does not supply models or agent tools.
+
+The operational lead owns scope, integration, review decisions, and final
+acceptance. Codex defaults to GPT-6 Sol; Claude Code defaults to Opus 5.5.
+Fable and Astra are called for bounded difficult decisions or required
+independent review. A user can explicitly choose a different capable lead.
 
 ## The seven skills
 
@@ -39,22 +44,23 @@ subagents and access to Astra; installing the plugin does not supply those capab
 $orchestrate <task or approved plan>
 ```
 
-Astra reads the project and designs only the roles the task needs, then chooses
-each worker's model and effort from the host's available options. For example,
-Luna/low for bounded extraction, Terra/medium for exploration, Sol/medium for
-scoped implementation, and Astra/medium for difficult or high-risk reasoning.
-These are adjustable starting points, not a fixed roster.
+The operational lead reads the project, chooses only the roles the task needs,
+and selects each worker's model and effort from the host's available options.
+Codex defaults to Sol 6 as lead; Claude Code defaults to Opus 5.5. Luna/low
+fits bounded extraction, Sol/medium fits scoped implementation, and Astra
+can advise on difficult or high-risk reasoning. These are starting points,
+not a fixed roster.
 
 Independent work runs through native subagent tools. Each worker gets explicit
-file ownership and acceptance criteria; Astra integrates and verifies results.
+file ownership and acceptance criteria; the lead integrates and verifies results.
 Overlapping writes run sequentially, and simple tasks need no workers. A runtime
-without Astra or configurable subagents reports the limitation instead of claiming
-an equivalent workflow. No global model defaults or custom agent files are changed.
+without the requested model or subagent capability reports the limitation.
+The skill does not change global model defaults or create custom agent files.
 
 Use the same [symlink installation](#from-a-checkout) as the other skills, or
-install the plugin. In a Codex CLI session, select the lead explicitly with
-`codex -m gpt-6-astra`, then invoke `$orchestrate`. The skill adapts to available
-tools; it does not change the model of an already-running session by assertion.
+install the plugin. In a Codex CLI session, select the default lead with
+`codex -m gpt-6-sol`, then invoke `$orchestrate`. A user may choose Astra as
+lead explicitly. The skill does not change an already-running session's model.
 
 The workflow follows the [official subagents guide](https://learn.chatgpt.com/docs/agent-configuration/subagents).
 
@@ -71,11 +77,22 @@ $herd <task or approved plan>
 ```
 
 The lead picks a transport per worker: a same-provider peer session for
-work that belongs to another live repo, a herdr agent for another model or
-machine, a native subagent for disposable labor. Persistent workers run
-under an execution contract with a per-task review gate. Requires
-[herdr](https://herdr.dev) for the herdr transport; the other two work
-without it.
+work that belongs to another live repo, a herdr agent for persistent work
+on another model or machine, or a native subagent for bounded one-off work.
+An explicit `$herd` request puts the substantive work with workers; the lead
+sets scope, handles authorized permission prompts, checks the result, and
+integrates it. Persistent assignments use an execution contract and a
+per-task review gate. Only the herdr transport requires [herdr](https://herdr.dev).
+
+An Opus lead can send harder scoped implementation to Cursor or Devin pinned
+to **Opus 5.5**; a different Opus version or moving alias is not a substitute.
+Those workers can implement but cannot independently review Opus work. When
+lead and worker use the same canonical model, a different model must review
+each substantive change before the lead accepts it. Model identity is checked
+from launch settings and available runtime labels; this does not attest to
+the provider's serving model. Sol starts at medium effort and increases effort
+only when the task warrants it. These choices aim to reduce total cost, but
+the repository does not claim measured token savings.
 
 ### `whatup`
 
@@ -134,6 +151,8 @@ you can use to re-verify each claim.
 
 Add `--full-cycle` to review the plan before implementation, review the final
 cumulative diff, and run the plan's real end-to-end check when one exists.
+Even without `--full-cycle`, a worker sharing the lead's canonical model
+triggers different-model review before the affected milestone is accepted.
 
 ---
 
@@ -146,7 +165,8 @@ seesaw-review [<patch, PR, or task target>]
 A focused patch review: prove the original bug is fixed and the related behavior
 still works. The lead traces callers, sibling paths and relevant retry/runtime
 conditions, then verifies concrete preservation checks with one independent
-Fable/Astra peer through Herd. Corrections keep the original baseline and checks;
+peer through Herd: Opus 5.5 for a Sol lead, Fable for Astra, or Astra for a
+Claude Code lead. Corrections keep the original baseline and checks;
 two unsuccessful correction rounds escalate instead of accumulating more patches.
 
 It reuses task evidence and returns a bounded PASS / FIX / ESCALATE. It does not
@@ -197,10 +217,10 @@ repository they intend to change, and prose for false or misleading claims.
 **Use it when:** one model reviewing its own work is not enough.
 
 **What it does:** the lead personally reviews and verifies the artifact while
-independent reviewers work in persistent `herd` panes. Astra requires a Fable
-peer; Fable requires an Astra peer, without model downgrade. Cursor uses Grok
-4.6 or a newer verified version; Devin SWE-2 Max is execution-only. Reviewers
-retain their own context for debate, rebuttal and versioned fix verification.
+independent reviewers work in persistent `herd` panes. Codex Sol or Astra
+requires Fable; Claude Code Opus or Fable requires Astra. Cursor uses verified
+Grok 4.7 or newer. Devin, whether SWE-2 Max or pinned Opus 5.5, is execution-only.
+Reviewers retain their own context for debate, rebuttal and versioned fix verification.
 The lead validates findings and owns the final acceptance decision.
 
 | Seat | Weight |

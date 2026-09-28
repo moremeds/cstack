@@ -21,17 +21,18 @@ Use the actual lead model and the user's selection, not just the CLI name:
 | You are | Your peer (1.0) | Cross-lineage (1.0) | Advisor (0.5) |
 | --- | --- | --- | --- |
 | **Claude Code / Fable or Opus lead** | Codex Astra | Cursor/Grok | Gemini, only when requested |
-| **Codex / Astra** | Claude Fable | Cursor/Grok | Gemini, only when requested |
+| **Codex / Sol or Astra lead** | Claude Fable | Cursor/Grok | Gemini, only when requested |
 | **Gemini** | you do not orchestrate — stop and tell the user to run this from Claude or Codex | — | — |
 
 **Cursor/Grok is a panelist in every runtime**, and that is the point. It runs
 Grok 4.7 (`grok-4.7-high`) or a newer verified available Grok, pinned throughout the review — a different model lineage from every other seat on the panel, which
 is the whole premise of this skill: two instances of the same model share blind
 spots. When Gemini is unavailable, Cursor/Grok still supplies an independent
-cross-lineage vote. Devin is execution-only (SWE-2 Max), never a reviewer or
+cross-lineage vote. Devin is execution-only (SWE-2 Max or pinned Opus 5.5), never a reviewer or
 voting seat. Do not treat two CLIs using the same model as independent lineages.
-The Fable/Astra peer pairing is mandatory: no downgrade to Opus, Sol, a default
-model or an automatic fallback. Cursor supplements this peer, never replaces it.
+The required peer is Fable for a Codex lead and Astra for a Claude Code lead:
+no downgrade to a default model or automatic fallback. Cursor supplements this
+peer, never replaces it.
 Record requested and observed models; an unavailable or unverified required
 peer leaves the tribunal gate open. Continue useful checks without claiming
 the required review passed. For other lead models, ask for the peer pairing.

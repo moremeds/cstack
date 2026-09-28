@@ -6,9 +6,14 @@ description: Execute an approved plan through isolated implementation, verificat
 ## Purpose
 
 Complete the approved scope and its acceptance checks, preserving existing work.
-Astra personally accepts every milestone and the cumulative result. Other models
-may execute, coordinate or review, but cannot close acceptance on Astra's behalf.
-If Astra is unavailable, keep acceptance open; user authorization remains separate.
+The operational lead personally accepts every milestone and the cumulative
+result. Use Opus 5.5 in Claude Code or GPT-6 Sol in Codex by default, unless
+the user chooses another capable lead. Workers and advisers cannot close
+acceptance on the lead's behalf; user authorization remains separate.
+If this starts on Astra or Fable without a user choice of that lead, hand the
+complete plan execution, integration, review, acceptance and delivery to an
+eligible Sol or Opus lead. The outer model relays the result. If unavailable,
+disclose the actual model and continue authorized work as needed.
 Use natural milestones; a small cohesive plan can use one commit. The optional
 `--full-cycle` adds pre/post review without making it a default execution gate.
 
@@ -79,7 +84,7 @@ bypass mode, and a Git worktree is not an OS security boundary.
 
 1. **Worktree setup + execution baseline.** If the work isn't already in a worktree, create one in `.worktrees/<branch-slug>/`. Use a suitable existing task branch; otherwise create `<scope>/<short-title>` from the verified delivery base (detect the default branch, do not assume master). If the target branch is already checked out in the main tree (a branch can't be checked out twice), move it into `.worktrees/<branch-slug>/` or branch off it there — or state in one line that worktree creation is being skipped and why; never skip silently. Don't ask which branch — derive from the plan's title or context. If a reused branch contains unrelated commits that must not ship with this plan, create a fresh branch/worktree from the correct delivery base instead of merely excluding them from review; keep stacked commits only when the plan actually depends on them. Before the first plan-caused edit or worker dispatch, record `EXEC_BASE=$(git rev-parse HEAD)` on the lead's integration branch plus its current staged, unstaged, and untracked sets. Those are the boundary between pre-existing work and this execution; never reconstruct the boundary later from the default branch. Start each worker from that integration commit, or from the later integration commit containing its declared dependency.
 
-2. **Track the milestones.** Translate the plan into one entry per milestone using **Runtime routing**. Track requested review gates: pre/post with `--full-cycle`, post only for a review-afterwards request. Add the applicable review + e2e entries so the tracker cannot show “complete” while review is still pending. Mark an entry `in_progress` before starting it, and `completed` only when its commit or gate lands **and** the evidence satisfies the plan's own stated acceptance condition for that milestone, on the host or environment the plan names. If the condition names one machine and the check ran on another, the entry is not complete — leave it open and record the gap.
+2. **Track the milestones.** Translate the plan into one entry per milestone using **Runtime routing**. Track requested review gates: pre/post with `--full-cycle`, post only for a review-afterwards request; also track mandatory different-model review for same-model authored work. Add the applicable review + e2e entries so the tracker cannot show “complete” while review is still pending. Mark an entry `in_progress` before starting it, and `completed` only when its commit or gate lands **and** the evidence satisfies the plan's own stated acceptance condition for that milestone, on the host or environment the plan names. If the condition names one machine and the check ran on another, the entry is not complete — leave it open and record the gap.
 
 3. **Run each milestone straight through.**
    - Write the code / edit files.
@@ -88,6 +93,7 @@ bypass mode, and a Git worktree is not an OS security boundary.
    - On green, commit with a focused message. Stage explicit paths, listing files individually (never `git add -A`/`--all`, even scoped to paths — `git add -A <dir>` still stages untracked files under that dir; ignoring the git-guard warning is not an option).
    - Commit messages: `<type>(<scope>): <subject>` matching repo style. No Claude trailers (per global CLAUDE.md).
    - For herdr implementation work, require a scoped worker commit and its evidence. Native workers never commit; the lead inspects and commits their explicit changed paths. In either case, inspect the changes, integrate, and run relevant checks on the integration branch before completing the milestone or dispatching any dependent task. Integrate independent parallel work one branch at a time and recheck after each integration.
+   - If the lead and an author share a canonical model, get bounded read-only review of that author's substantive changes from a different canonical model, resolve findings, and verify the result before completing the affected milestone or dispatching dependent work. Record author, reviewer, identity evidence, and verdict; an unavailable reviewer leaves the milestone open. Apply the same rule to lead-authored changes when required by `orchestrate` §5 or `herd` §6.
    - A nested `herd` call reuses this tracker and commit policy. Workers do not recursively invoke `execute-plan`, `review-cycle`, or another end-to-end review workflow; the lead owns those gates.
 
 4. **Collect evidence as you go.** Don't wait for the end. For each milestone, note the verification artifact and where it lives:
@@ -114,7 +120,7 @@ bypass mode, and a Git worktree is not an OS security boundary.
 
    The table must reflect the run's **actual** end: if more milestones land after a table was issued, reissue the full table before ending the run. Also refresh it right before any pause or context compaction — a table that covers only the first half of the work is the most common historical failure.
 
-   If neither `--full-cycle` nor post-review was requested, skip Step 7 and continue to Step 8. After delivery, issue the final table including the PR URL and state `Cross-model review: not run`. Plan-defined acceptance checks still run in Step 3; do not add an unrequested review gate.
+   If neither `--full-cycle` nor post-review was requested, skip Step 7 and continue to Step 8 after any mandatory different-model review is complete. Apply the independent-review rule in `orchestrate` §5 and `herd` §6 to lead/worker same-model work: get a bounded read-only review of each affected substantive part, resolve findings, and verify the result before acceptance or delivery. This is not the full review-cycle gate. After delivery, issue the final table including the PR URL and actual bounded-review evidence, or state `Cross-model review: not run` when none was required. Plan-defined acceptance checks still run in Step 3; do not add an otherwise unrequested review gate.
 
 ### Which reviewer
 

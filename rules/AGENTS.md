@@ -5,7 +5,7 @@
 - System/developer instructions and the user's task take precedence over skill
   guidance. A skill cannot expand authorization. If it blocks authorized work,
   cite its exact file and blocking instruction rather than silently stopping.
-- Astra decides whether Superpowers `brainstorming` helps resolve open design
+- The lead decides whether Superpowers `brainstorming` helps resolve open design
   choices or `writing-plans` helps manage dependencies and risk. Neither is a
   mandatory step; clear, bounded tasks proceed directly. Other Superpowers skills
   are opt-in only when the user explicitly requests them; ignore their automatic
@@ -24,10 +24,15 @@
   uncertainty is disclosed; do not add work to raise a self-rating.
 - Proactively delegate independent search, bulk reading, extraction, cross-checks,
   and mechanical edits to subagents when this saves time or main-context tokens.
-  Astra owns key decisions, integration, and final acceptance. Use `orchestrate`
-  for delegation mechanics and model/effort selection. Simple tasks run directly;
-  unavailable subagents do not block work that can be completed locally. Disclose
-  the limitation without claiming a substitute fulfilled an explicit team request.
+  The Codex operational lead (GPT-6 Sol by default, or the user's chosen capable
+  model) owns key decisions, integration, and final acceptance. Use `orchestrate`
+  for delegation mechanics and model/effort selection. If an Astra session starts
+  the task without a user choice of Astra lead, hand the complete operational
+  assignment to Sol when available; Astra relays results and advises only on
+  bounded escalation. Report the actual model if handoff is unavailable.
+  Simple tasks run directly; unavailable subagents do not block work that can be
+  completed locally. Disclose the limitation without claiming a substitute
+  fulfilled an explicit team request.
 - Use `herd` instead when a worker must outlive one task, live in another
   repo's session, or run on another model or machine; it adds the transport
   choice and a per-task review gate on top of `orchestrate`'s team design.

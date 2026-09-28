@@ -91,7 +91,7 @@ The lead owns the review, even when workers provide execution capacity:
 - `tribunal-review` remains the only Pass-2 reviewer workflow and owns reviewer
   selection. It delegates execution transport to `herd`; this skill does not
   launch or manage reviewer CLIs.
-- Tribunal's required peer is Fable for an Astra lead and Astra for a Claude
+- Tribunal's required peer is Fable for a Codex lead (Sol or Astra) and Astra for a Claude
   Code lead (Fable or Opus). Do not downgrade or replace that peer; its absence or unverified model
   identity leaves the independent gate open, even if Cursor answered.
 - After the lead's initial findings exist, `herd` may run a bounded
@@ -102,7 +102,7 @@ The lead owns the review, even when workers provide execution capacity:
   the diff, commands, results, and deviations. They never commit, deliver,
   merge, or publish. This no-commit rule overrides Herd's normal delivery
   contract for these assignments.
-- Devin SWE2 Max is execution-only: investigation, reproduction, checking, and
+- Devin (SWE-2 Max or pinned Opus 5.5) is execution-only: investigation, reproduction, checking, and
   fixing. It is never seated as a reviewer and never supplies a verdict.
 
 Workers supply evidence, not acceptance. The lead personally verifies every

@@ -76,21 +76,28 @@ Every read, write, and reply costs tokens. Save them by reading and saying less,
 ## Session & dispatch discipline
 
 - **Never use the superpowers SDD / parallel-dispatch pattern** (`subagent-driven-development`, `dispatching-parallel-agents`: per-task implementer + reviewer agents, parallel fan-out). This overrides those skills. **Approved plans are executed with the user's own `/execute-plan` skill** (worktree → straight-through implementation → milestone commits → evidence-based verification); outside Fable orchestration mode it runs as one linear thread in the main session, with only the labor delegation below.
-- **Cross-model review goes through `/tribunal-review`** (`~/.agents/skills/tribunal-review`), the portable skill both Claude and Codex orchestrate. Here Claude runs it and Codex is the peer reviewer (weight 1.0); in Codex the roles swap. Cursor/Grok (`cursor-agent`, model `grok-4.7-high`) is a weight-1.0 cross-lineage panelist available in both runtimes; Gemini is a weight-0.5 advisor; availability is determined by the current launch. The review launch is the availability probe; skip with a named reason when it fails. Pass `focus: <text>` to steer emphasis; focus raises attention and never suppresses an off-topic CRITICAL. `/review-cycle` (also portable, `~/.agents/skills/review-cycle`) calls it as its Pass 2 engine.
-- **Opus delegates labor to Sonnet; Sonnet and smaller models do the work themselves.** Running as Opus, send independent search, bulk reading, extraction, cross-checks, and mechanical edits to a subagent with `model: "sonnet"` set explicitly whenever that saves main-context tokens. Keep problem framing, proposed key decisions, design tradeoffs, evidence synthesis, integration, and an acceptance recommendation yourself; Astra finally accepts every deliverable and the overall result, including `/execute-plan` and `herd` work. One named worker per bounded task — this is not the fan-out banned above: no per-task implementer+reviewer pairs, no parallel swarm of peers. Delegate through the Agent tool; several distinct roles are several bounded Agent calls. `orchestrate` is Codex-only — it leads as Astra and reports a limitation when Astra is absent — so never invoke it from Claude. `herd` is the cross-session, cross-model, cross-machine variant: a running non-Astra coordinator may dispatch and collect within Astra's scope and permission decisions; Astra alone finally accepts. A subagent never delegates further: two tiers at most. This holds inside `/execute-plan`: the plan still runs as one linear thread, but a bulk mechanical step within it may go to a Sonnet worker.
-- Any delegated agent (Opus→Sonnet labor, Fable mode, or research) gets a bounded scope, explicit acceptance criteria, and a turn budget (~40 turns); past budget, stop it and rescope instead of letting it grind.
+- **Cross-model panel review goes through `/tribunal-review`** (`~/.agents/skills/tribunal-review`), the portable skill both Claude and Codex orchestrate; bounded independent review and `seesaw-review` retain their own gates. Here Claude runs it and Codex is the peer reviewer (weight 1.0); in Codex the roles swap. Cursor/Grok (`cursor-agent`, model `grok-4.7-high`) is a weight-1.0 cross-lineage panelist available in both runtimes; Gemini is a weight-0.5 advisor; availability is determined by the current launch. The review launch is the availability probe; skip with a named reason when it fails. Pass `focus: <text>` to steer emphasis; focus raises attention and never suppresses an off-topic CRITICAL. `/review-cycle` (also portable, `~/.agents/skills/review-cycle`) calls it as its Pass 2 engine.
+- **Opus 5.5 delegates bounded work.** Use Sonnet for search, extraction, and mechanical work when it saves lead context. For harder implementation, Opus may use a Cursor or Devin worker pinned to Opus 5.5 through `herd`; its work requires review by a different canonical model before Opus accepts it. Keep scope, key decisions, integration, and final acceptance with the operational lead. One worker per bounded task; avoid a parallel swarm. `orchestrate` uses native subagents when available. Subagents do not delegate further. This also applies inside `/execute-plan`.
+- Any delegated agent (Opus 5.5 workers, Sonnet labor, Fable mode, or research) gets a bounded scope, explicit acceptance criteria, and a turn budget (~40 turns); past budget, stop it and rescope instead of letting it grind.
+- If a Fable session starts work without the user choosing Fable as lead, hand
+  the complete operational assignment to an eligible Opus 5.5 peer or native
+  agent. Opus owns dispatch, integration, review, acceptance and delivery;
+  Fable relays concise results and advises only on bounded escalation. If no
+  handoff is available, state the actual model and continue authorized work.
 - **When context usage exceeds 35%**, finish the current step, write a handoff summary (task state, files changed, blockers, next step), then compact before continuing substantive work — trigger compaction if the harness supports it, otherwise ask the user to `/compact`.
 
 ## Fable orchestration mode
 
-**Applies only when the running model is Fable** (check the environment/system context for the model name; on Opus, Sonnet, or any other model, skip this section entirely).
+**Applies only when the user explicitly chooses Fable as the operational lead**
+(check the environment/system context for the model name; otherwise skip this section).
 
 Your main job here is analysis, orchestration, and verification — hand the
 concrete work off to a subagent (Opus or Sonnet) whenever possible. Do only
-requirement clarification, plan breakdown, task dispatch, and an acceptance
-recommendation to Astra yourself; implementation work (reading a lot of code, writing code,
+requirement clarification, plan breakdown, task dispatch, and final acceptance
+yourself; implementation work (reading a lot of code, writing code,
 running tests, bulk edits) always goes through the Agent tool to a subagent,
-with `model: "opus"` or `model: "sonnet"` set explicitly in the call.
+with a verified Opus 5.5 model ID or `model: "sonnet"` set explicitly in the call;
+never use an unpinned `opus` alias that could select another version.
 
 - What you do directly: read the user's requirement, ask clarifying
   questions, write the task breakdown, check the subagent's returned results
@@ -103,42 +110,24 @@ with `model: "opus"` or `model: "sonnet"` set explicitly in the call.
 
 ## Opus orchestration mode
 
-**Applies when the running model is Opus (5.5 or later).** Opus coordinates: it frames
-the problem, recommends decisions to Astra, integrates, and reports results for Astra's acceptance. Two other
-models take part, each in one role:
+**Applies only when the running model is Opus 5.5.** Opus is the default
+Claude Code operational lead: it frames the problem, decides within the user's
+authorization, integrates, and accepts the result. Other models have bounded roles:
 
-- **Sonnet is the worker.** Labor goes to Sonnet under the dispatch rule above.
-  Set `model: "sonnet"` explicitly on every such call, because subagents default
-  to `inherit` and would otherwise spend Opus on bulk work.
-- **Fable is the adviser.** Opus consults Fable and Fable advises; Fable does
-  not lead, decide, or do labor. It gets no write tools and no delegation, and
-  it does not approve anything. Consult Fable sparingly,
-  at these checkpoints and nowhere else:
-  1. A nontrivial design or plan is settled and implementation is about to
-     start: ask Fable whether the approach holds before code exists.
-  2. A substantial change is complete and about to become a PR: ask Fable to
-     read the diff for correctness, not style.
-  3. Opus is stuck: two failed fix attempts on the same bug, or a decision where
-     the evidence points both ways. Ask Fable for a diagnosis or a
-     recommendation.
-
-  Checkpoints 1 and 3 use the built-in `advisor` tool. It is present only when
-  the `advisorModel` setting is set, and that setting is `"claude-fable-5-1"`
-  (Fable 5.1). The advisor sees the whole transcript, so there is no brief to
-  write, but it has no tools and cannot open files: it sees only the code
-  already quoted in the transcript. Checkpoint 2 needs the full diff, so it
-  uses one read-only Fable subagent through the Agent tool (`model: "fable"`,
-  bounded scope, no skill involved). When the session has no `advisor` tool, checkpoints 1 and 3 use
-  that same subagent.
-
-  Do not consult it per file, per commit, or for edits under ~50 lines, and make
-  at most about two Fable calls per task unless a reason is named. Frame each
-  call as a question and ask for a recommendation with its reasoning, not an
-  open-ended review. The advice is input, not orders. Opus checks each claim
-  against the code, accepts or rejects it, and records the reason in one line
-  when it rejects one. When a deep review is wanted, call `/tribunal-review`
-  explicitly. It seats Astra and Grok as reviewers, not Fable, and it replaces
-  the Fable checkpoint instead of adding to it.
+- **Choose the worker by task.** Use Sonnet for cheap bounded labor. Use the
+  pinned Cursor or Devin Opus 5.5 roster worker for harder scoped implementation;
+  never use an older/newer Opus version or an unverified alias as a substitute.
+  A different canonical model must review Opus-worker changes before acceptance.
+  The lead still verifies integration and evidence.
+- **Fable is an on-demand adviser.** Consult it for a genuinely hard or risky
+  decision, a blocked diagnosis, or independent review required by the task's
+  review gate. Give it a bounded question and the relevant evidence, with read-only
+  access and no delegation or approval authority. The built-in `advisor` tool is
+  configured outside this skill and receives the full transcript on each call;
+  its availability does not make it a standing checkpoint. Give a read-only Fable subagent a narrow
+  diff or evidence slice when that suffices. Opus verifies advice against the
+  source and owns the decision. When `/tribunal-review` is required, its review
+  seat replaces a duplicate Fable consultation.
 
 ## Config sync
 

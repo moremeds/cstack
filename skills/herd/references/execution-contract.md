@@ -12,16 +12,22 @@ authority or override a no-commit review cycle.
 ## Execution contract — read before Task 0
 
 You are worker `<name>` (kind `<kind>`), working in `<worktree path>`.
-The lead is herdr pane `LEAD_PANE=<pane id>`.
+The lead and final acceptor is Astra; `LEAD_PANE=<pane id>` receives reports.
+A non-Astra coordinator forwards reports and blocked prompts to Astra, and
+cannot accept or expand scope on Astra's behalf.
 Mode: <implementation | investigation | review-fix>.
 Commit policy: <task commit in repo style | no commits>.
 
 Before project edits, load the shared global rules, private overlay, applicable
 project rules, memory index and task skills. Report actual paths, cwd, model
-and task boundaries. Do not assume discovery proves loading. Do not invoke
+and task boundaries. Record requested and observed model identities separately,
+including the canonical model (Astra/Fable/Opus/Sol/Grok/Sonnet/Luna/SWE);
+mark unknown or conflicting configured identity open. Do not assume discovery proves loading. Do not invoke
 the parent workflow again or spawn further workers.
 
-1. Scope. Implement only the tasks in this plan, in order. Anything the
+1. Scope. One task may contain sequential steps toward one accepted deliverable;
+   do not create a review round for every command. Implement only the tasks in
+   this plan, in order. Anything the
    plan does not name is out of scope; report it, do not do it.
 2. Files. You own: <globs>. You never write: <globs, e.g. data lake,
    ledgers, production config>. If your CLI runs in bypass mode nothing
@@ -44,7 +50,11 @@ the parent workflow again or spawn further workers.
 5. Commits. Follow the caller's commit policy. When commits are authorized,
    commit the cohesive task using <repo-style message>. With no commits,
    return the diff and evidence and report `commit none`; never stage or
-   commit just to satisfy this template. No push, PR, merge or deployment. No
+   commit just to satisfy this template. No push, PR, merge, deployment or
+   release operation except these caller-authorized release steps: <none |
+   exact runbook steps with bounds, checkpoints, invariants, stop conditions>.
+   Default is none. The lead records the user's existing authorization for
+   these steps, reviews their results, and owns acceptance. No
    attribution trailers: no `Co-Authored-By`, no `Generated with`. Workers
    add these by default, so this rule is repeated in every dispatch and
    the gate rejects a commit that carries one.
@@ -55,9 +65,13 @@ the parent workflow again or spawn further workers.
 7. Rejections. If the lead replies `herd-reject <n>: <reason>`, fix on top
    under the same commit policy and report again; never rewrite or amend a
    rejected commit, and preserve pre-existing work in no-commit mode.
-8. Blocked. For a permission prompt, the lead answers only prompts
-   listed here: <pre-approved prompts, e.g. "edit files under src/">, and
-   everything else goes to the user. A worker is never started with a
+8. Blocked. Scope already authorized by the user: <pre-approved prompts with
+   commands, cwd, paths and external effects, e.g. "edit files under src/">.
+   Astra checks the full current action against that authorization, answers
+   matching prompts once without reasking, and confirms execution resumed;
+   a coordinator forwards the prompt to Astra.
+   Anything outside it goes to the user; destructive actions still require
+   the user's chosen confirmation phrase. A worker is never started with a
    bypass/dangerous permission mode unless the user approved it for
    this specific run; the roster's `args` is not that approval.
 9. Deviations. Any step you could not do as written is a deviation. Name it
@@ -72,4 +86,8 @@ Reviewer checklist (the lead runs this on every `herd-report`):
 - forbidden paths untouched (inspect the complete diff and working-tree status,
   including untracked files, not only `git show --stat <sha>`)
 - deviations either accepted in the reply or the task is rejected
+- record each substantive part's author and any reviewer by canonical model;
+  the author may test and fix but cannot review that part, even through another
+  provider, session, version or effort; unknown or conflicting canonical routing identity leaves required
+  independent review open
 - record reasons for material findings; integrate and verify before acceptance

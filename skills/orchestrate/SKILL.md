@@ -13,7 +13,9 @@ do not add a scheduler, direct completion API, or persistent agent files.
 
 ## 1. Lead and scope
 
-- Astra (`gpt-6-astra`) owns scope, decisions, integration, and final acceptance.
+- Astra (`gpt-6-astra`) owns scope, decisions, integration, and final acceptance
+  of every deliverable and the cumulative result. No coordinator, worker or
+  reviewer may accept on Astra's behalf; their reports and votes are inputs.
   Lead here if already Astra; keep the current effort unless the host supports
   changing it. Read relevant guidance and artifacts to establish acceptance,
   dependencies, risk, and the bottleneck.
@@ -37,9 +39,8 @@ not a fixed team or measured performance claims:
 
 | Work characteristics | Starting choice |
 | --- | --- |
-| Clear extraction, bounded documentation lookup, mechanical checks | `gpt-5.6-luna` / `low` |
-| Read-heavy exploration, tracing an existing path | `gpt-5.6-terra` / `medium` |
-| Scoped implementation with known acceptance | `gpt-5.6-sol` / `medium` |
+| Clear extraction, bounded lookup or search, mechanical checks | `gpt-6-luna` / `low` |
+| Scoped implementation with known acceptance, tracing an existing path | `gpt-6-sol` / `medium` |
 | Ambiguous design, difficult diagnosis, security/money/data-loss review | `gpt-6-astra` / `medium` |
 
 Adjust to uncertainty and impact; use stronger reasoning for difficult decisions
@@ -47,6 +48,8 @@ and lighter execution for routine work. User-selected pairs win. If unsupported,
 disclose a supported alternative rather than silently substituting. Narrow or
 escalate a reasoning-blocked assignment instead of repeating it unchanged.
 Do not change global defaults or claim an unavailable model switch.
+For cross-provider routing, use the user's approximate tiers in
+`skills/herd/SKILL.md` §2; they are a heuristic, not measured quality or price.
 
 ## 3. Dispatch
 
@@ -75,16 +78,21 @@ task's isolated worktree. For shared files, use read-only help or transfer exclu
 ownership after the previous writer stops and returns changes. The lead integrates.
 Serialize tests that need a stable tree or use separate worktrees when required.
 
-The lead owns shared integration files, commits, PRs, and release actions.
-Workers must preserve pre-existing changes and must not commit, merge, publish,
-or change unrelated files. A prompt's read-only instruction is not a sandbox;
+The lead owns shared integration files, commits, PRs, and release actions. The
+one exception is a `herd` execution contract that names explicit
+caller-authorized release steps; the lead still approves and reviews them.
+Workers must preserve pre-existing changes and must not change unrelated files.
+Commits, merges and publishing are forbidden except for the explicit herd
+contract steps above. A prompt's read-only instruction is not a sandbox;
 use an actual read-only capability when the host offers one and disclose when
 access control is only by instruction.
 
 Use native wait/status and messaging, not log polling. Relay corrections,
 interrupt stale work before reassigning files, and keep still-valid evidence.
 Timeout, silence, and unavailable models are not success. Retry after a meaningful
-change; otherwise complete the subtask locally or report its blocker.
+change; otherwise complete the subtask locally or report its blocker. An explicit herd
+request forbids taking over bulk work locally unless the user changes that requirement;
+small integration fixes stay with the lead. Follow herd's escalation instead.
 
 ## 5. Acceptance and delivery
 
@@ -92,6 +100,16 @@ Wait for every required deliverable. Inspect worker changes and evidence against
 the original acceptance criteria; a worker's "done" is not verification. Resolve
 conflicts, then run the smallest relevant integration check on the combined result.
 For plans/research, check evidence and consistency instead of inventing code tests.
+An author may test, diagnose and fix their own work but cannot provide its
+independent review. Match reviewers by canonical model, not provider, session,
+version or effort: Opus cannot review Opus. For mixed-model work, each
+substantive part needs a different-model reviewer; Astra-authored changes need
+one before Astra accepts. Record each author's and reviewer's canonical model
+and requested/observed identity. Unknown or conflicting canonical routing
+identity leaves required independence unverified. A host-controlled selection
+record plus runtime label where exposed is configured routing evidence, not
+provider-serving attestation (see `skills/herd/references/herdr-cli.md`).
+Keep any caller's required review seats unchanged.
 
 End with the outcome, actual agent/model/effort selections supported by tool
 results (label requested-only settings), verification, and unresolved items.

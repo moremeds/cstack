@@ -78,9 +78,16 @@ class TestRoster(unittest.TestCase):
                     self.assertEqual(args[args.index("--permission-mode") + 1], "accept-edits")
                     self.assertIn("--sandbox", args)
             elif w["kind"] == "cursor":
-                self.assertEqual(args[args.index("--mode") + 1], "ask")
-                self.assertEqual(args[args.index("--model") + 1], "grok-4.7-high")
-                self.assertNotIn("--force", args)
+                for bad in ("--force", "-f", "--yolo"):
+                    self.assertNotIn(bad, args, w["name"])
+                if w["name"] == "reviewer":
+                    self.assertEqual(args[args.index("--mode") + 1], "ask")
+                    self.assertEqual(args[args.index("--model") + 1], "grok-4.7-high")
+                elif w["name"] == "cursor-implementer":
+                    self.assertEqual(args[args.index("--model") + 1], "claude-opus-5-5-medium")
+                    self.assertEqual(args[args.index("--sandbox") + 1], "enabled")
+                elif "read-only" in w["role"]:
+                    self.assertEqual(args[args.index("--mode") + 1], "ask", w["name"])
             elif w["name"] == "review-fable":
                 self.assertEqual(args[args.index("--model") + 1], "fable")
                 self.assertEqual(args[args.index("--tools") + 1], "Read,Grep,Glob")
@@ -92,8 +99,11 @@ class TestRoster(unittest.TestCase):
 
     def test_repo_and_example_reviewer_settings_agree(self):
         actual = tomllib.loads((ROOT / "herd.toml").read_text())
-        expected = {w["name"]: w["args"] for w in self.doc["worker"]
-                    if w["name"] in ("reviewer", "review-fable", "review-astra")}
+        shared = ("reviewer", "review-fable", "review-astra",
+                  "cursor-implementer", "cursor-adviser")
+        expected = {w["name"]: w["args"] for w in self.doc["worker"] if w["name"] in shared}
+        self.assertEqual(set(expected), set(shared))
+        self.assertTrue(set(shared).issubset({w["name"] for w in actual["worker"]}))
         for worker in actual["worker"]:
             if worker["name"] in expected:
                 self.assertEqual(worker["args"], expected[worker["name"]])

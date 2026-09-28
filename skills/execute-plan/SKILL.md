@@ -6,6 +6,9 @@ description: Execute an approved plan through isolated implementation, verificat
 ## Purpose
 
 Complete the approved scope and its acceptance checks, preserving existing work.
+Astra personally accepts every milestone and the cumulative result. Other models
+may execute, coordinate or review, but cannot close acceptance on Astra's behalf.
+If Astra is unavailable, keep acceptance open; user authorization remains separate.
 Use natural milestones; a small cohesive plan can use one commit. The optional
 `--full-cycle` adds pre/post review without making it a default execution gate.
 
@@ -36,12 +39,12 @@ context, cost, and available capabilities:
 | native worker | bounded one-off work benefits from disposable parallel help |
 | `herd` worker | context must persist, or another provider or machine is needed |
 
-There is no `--herd` mode. Select `herd` only where its transport is useful,
-reuse one worker for related sequential tasks, and run workers concurrently
-only for independent tasks with disjoint owned files. If selecting Devin, use
-SWE-2 Max as an executor only, never as a reviewer. If selecting Cursor, first
-verify that Grok 4.7 or newer is actually available, then pin that exact model
-for the task.
+There is no `--herd` mode. Select `herd` where its transport is useful; an
+explicit user request for herd overrides the small-task `lead` row and requires
+substantive delegated execution. Reuse one worker for related sequential tasks
+and run workers concurrently only for independent tasks with disjoint owned
+files. For herd workers, model and transport choice follows `herd` §2; native
+workers follow `orchestrate` without external CLI discovery.
 
 Delegation does not transfer acceptance. The lead personally reads the approved
 requirements, cumulative changes, relevant callers, and relevant tests; checks

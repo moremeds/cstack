@@ -14,6 +14,11 @@ herdr status | grep -q 'endpoint_compatible: yes'
 
 ## Discover
 
+A non-Astra coordinator may dispatch, collect results, and prepare evidence and
+teardown records within Astra's contract. Astra owns scope, permission decisions,
+review findings and final acceptance; the coordinator forwards reports and
+blocked prompts, and does not issue `herd-continue` on its own authority.
+
 ```bash
 herdr agent list                       # initial discovery; JSON: .result.agents[] {agent, agent_status, pane_id, cwd}
 herdr agent get <name|pane>            # one agent
@@ -68,6 +73,39 @@ herdr pane wait-output "$P" --regex '[$%❯>]( .*)?$' --timeout 15000
 herdr agent start implementer --kind devin --pane "$P" --timeout 60000 -- --model swe-2-max --permission-mode accept-edits --sandbox
 herdr agent wait implementer --until idle --timeout 60000
 ```
+
+Before launch, check from the lead's environment (not a nested CLI inside the
+worker sandbox, whose own log writes may need unrelated access) that the worker
+will load the shared setup: for Devin, `devin rules list` and `devin skills list`
+in the actual worktree (global rule entry `~/.config/devin/AGENTS.md`, shared
+skills in `~/.agents/skills`). Reuse bootstrap links, not a separate policy copy.
+Cache `devin models list` / `cursor-agent --list-models` output to a task file
+and pin the exact id in `--model`; a per-task override of a roster model is
+passed the same way and reported. Cursor writers run without `--force`/`--yolo`
+and answer prompts under the blocked rules below; Cursor advisers use
+`--mode ask`.
+Verified starting ids already used here: Devin `swe-2-max`; Cursor/Devin
+`claude-opus-5-5-medium`; Fable `claude-fable-5-1-medium`; native
+`gpt-6-sol` / `gpt-6-luna` only if advertised by the host. No Sonnet 5 id is
+verified here. Grok 4.7 is not a default executor. SWE-2 was listed Free by
+the local CLI on 2026-09-28 (user reports free through 2026-10-31; expiry
+unverified); recheck price at dispatch and after that date. Bring only candidate
+ids and prices into context; do not silently substitute Auto/Fusion or an alias.
+For caller-mandated aliases, obtain identity evidence. Record requested and
+observed model separately. A host-controlled launch/tool model-selection record
+and runtime CLI model label where exposed establish CONFIGURED canonical routing
+identity absent contrary evidence; compare both when available. A catalog entry
+or worker self-description alone cannot establish it. Unknown or conflicting
+configured canonical identity leaves required independence open. This is not
+independent provider-serving attestation; mark that boundary unverified.
+Cost includes worker tokens, lead setup, rereads and retries; claim no
+unmeasured savings.
+A roster executor may investigate read-only: record the narrower assignment and
+start its fresh instance with `--permission-mode auto --sandbox` for Devin, or
+`--mode ask` for Cursor. This is a restriction of the role, not a new role.
+For an explicitly authorized write run, a recorded Devin override may use
+`--permission-mode accept-edits --sandbox`; `auto` can also retain per-action
+prompts. Neither mode authorizes external effects or bypasses the contract.
 
 For restricted tribunal reviewers, append `--add-dir <seat-input-dir>` to the
 roster args at `herdr agent start`. This directory is prepared per review;
@@ -150,13 +188,16 @@ herdr agent get implementer
 herdr agent read implementer --source recent-unwrapped --lines 20
 ```
 
-For a prompt outside the task's existing authorization, show the dialog and
-ask the user what to answer. When the execution contract already authorizes
-that prompt, the lead answers without asking again
-with `herdr agent send-keys implementer <key>`. Devin's menus are numbered
-(`1` = approve once), so a pre-approved answer is `send-keys implementer 1 enter`.
-For writers, translate the task's existing authorization into scoped permission
-rules or answer matching prompts without asking the user again. Use Devin's
+For any blocked prompt, a non-Astra coordinator forwards it to Astra. Astra
+checks the exact action (command, arguments, cwd, paths, network, external
+effects) against existing user authorization. If outside it, Astra shows the
+dialog and must ask the user what to answer. If already authorized, Astra answers
+without asking again with `herdr agent send-keys implementer
+<key>`. Menus are numbered and the numbering varies: pick the key whose label
+approves this action once, never an "always allow" or bypass option, and never
+send a blind `y`/`1`. Re-read the pane afterwards to confirm the worker resumed.
+Answer matching prompts without asking the user again; do not install standing
+allow rules as a substitute for checking the action. Use Devin's
 `--permission-mode accept-edits` when workspace edits are authorized; it does
 not preapprove every shell command. Keep `auto` for read-only work. Reviewers
 use their own restrictive mode, never an implementation bypass flag.

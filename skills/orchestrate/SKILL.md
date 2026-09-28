@@ -48,6 +48,10 @@ Adjust to uncertainty and impact; use stronger reasoning for difficult decisions
 and lighter execution for routine work. User-selected pairs win. If unsupported,
 disclose a supported alternative rather than silently substituting. Narrow or
 escalate a reasoning-blocked assignment instead of repeating it unchanged.
+For GPT-6 Sol, start at `medium` for bounded implementation and ordinary lead
+work; use `high` for difficult multi-step planning, debugging or integration.
+Reserve `xhigh`/`max` for the hardest tasks when task evidence justifies the
+extra time and tokens. `ultra` adds subagents and is not a reasoning effort.
 Do not change global defaults or claim an unavailable model switch.
 For cross-provider routing, use the user's approximate tiers in
 `skills/herd/SKILL.md` §2; they are a heuristic, not measured quality or price.
@@ -104,9 +108,10 @@ conflicts, then run the smallest relevant integration check on the combined resu
 For plans/research, check evidence and consistency instead of inventing code tests.
 An author may test, diagnose and fix their own work but cannot serve as its
 independent reviewer. Match reviewers by canonical model, not provider, session,
-version or effort: Opus cannot review Opus. For mixed-model work, each
-substantive part needs a different-model reviewer when independent review is
-required; lead-authored changes need one before acceptance in that case. Record each author's and reviewer's canonical model
+version or effort: Opus cannot review Opus. Independent review is required
+whenever lead and worker share a canonical model. When review is required,
+each substantive part of mixed-model work needs coverage by a different model
+from its author; lead-authored changes need it too. Record each author's and reviewer's canonical model
 and requested/observed identity. Unknown or conflicting canonical routing
 identity leaves required independence unverified. A host-controlled selection
 record plus runtime label where exposed is configured routing evidence, not
@@ -121,6 +126,7 @@ the user's task and does not grant separate merge or deployment authority.
 
 ## Sources
 
-Checked 2026-09-07: [official subagents guide](https://learn.chatgpt.com/docs/agent-configuration/subagents)
-and [Astra guidance](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-6-astra).
+Checked 2026-09-28: [official subagents guide](https://learn.chatgpt.com/docs/agent-configuration/subagents),
+[Codex model and effort guidance](https://learn.chatgpt.com/docs/models), and
+[GPT-6 Sol model page](https://developers.openai.com/api/docs/models/gpt-6-sol).
 The role suggestions above are cstack policy; validate speed/quality on real tasks.

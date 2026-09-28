@@ -77,8 +77,8 @@ Every read, write, and reply costs tokens. Save them by reading and saying less,
 
 - **Never use the superpowers SDD / parallel-dispatch pattern** (`subagent-driven-development`, `dispatching-parallel-agents`: per-task implementer + reviewer agents, parallel fan-out). This overrides those skills. **Approved plans are executed with the user's own `/execute-plan` skill** (worktree → straight-through implementation → milestone commits → evidence-based verification); outside Fable orchestration mode it runs as one linear thread in the main session, with only the labor delegation below.
 - **Cross-model review goes through `/tribunal-review`** (`~/.agents/skills/tribunal-review`), the portable skill both Claude and Codex orchestrate. Here Claude runs it and Codex is the peer reviewer (weight 1.0); in Codex the roles swap. Cursor/Grok (`cursor-agent`, model `grok-4.7-high`) is a weight-1.0 cross-lineage panelist available in both runtimes; Gemini is a weight-0.5 advisor; availability is determined by the current launch. The review launch is the availability probe; skip with a named reason when it fails. Pass `focus: <text>` to steer emphasis; focus raises attention and never suppresses an off-topic CRITICAL. `/review-cycle` (also portable, `~/.agents/skills/review-cycle`) calls it as its Pass 2 engine.
-- **Opus delegates labor to Sonnet; Sonnet and smaller models do the work themselves.** Running as Opus, send independent search, bulk reading, extraction, cross-checks, and mechanical edits to a subagent with `model: "sonnet"` set explicitly whenever that saves main-context tokens. Keep problem framing, key decisions, design tradeoffs, evidence synthesis, integration, and final acceptance yourself. One named worker per bounded task — no per-task implementer+reviewer pairs or parallel swarm of peers. Delegate through the Agent tool; several distinct roles are several bounded Agent calls. `orchestrate` is Codex-only, so never invoke it from Claude. `herd` is the cross-session, cross-model, cross-machine variant; its operational lead owns scope, permission decisions within authorization, integration, and final acceptance. A subagent never delegates further: two tiers at most. This holds inside `/execute-plan`: the plan still runs as one linear thread, but a bulk mechanical step within it may go to a Sonnet worker.
-- Any delegated agent (Opus→Sonnet labor, Fable mode, or research) gets a bounded scope, explicit acceptance criteria, and a turn budget (~40 turns); past budget, stop it and rescope instead of letting it grind.
+- **Opus 5.5 delegates bounded work.** Use Sonnet for search, extraction, and mechanical work when it saves lead context. For harder implementation, Opus may use a Cursor or Devin worker pinned to Opus 5.5 through `herd`; its work requires review by a different canonical model before Opus accepts it. Keep scope, key decisions, integration, and final acceptance with the operational lead. One worker per bounded task; avoid a parallel swarm. `orchestrate` is Codex-only. Subagents do not delegate further. This also applies inside `/execute-plan`.
+- Any delegated agent (Opus 5.5 workers, Sonnet labor, Fable mode, or research) gets a bounded scope, explicit acceptance criteria, and a turn budget (~40 turns); past budget, stop it and rescope instead of letting it grind.
 - If a Fable session starts work without the user choosing Fable as lead, hand
   the complete operational assignment to an eligible Opus 5.5 peer or native
   agent. Opus owns dispatch, integration, review, acceptance and delivery;
@@ -96,7 +96,8 @@ concrete work off to a subagent (Opus or Sonnet) whenever possible. Do only
 requirement clarification, plan breakdown, task dispatch, and final acceptance
 yourself; implementation work (reading a lot of code, writing code,
 running tests, bulk edits) always goes through the Agent tool to a subagent,
-with `model: "opus"` or `model: "sonnet"` set explicitly in the call.
+with a verified Opus 5.5 model ID or `model: "sonnet"` set explicitly in the call;
+never use an unpinned `opus` alias that could select another version.
 
 - What you do directly: read the user's requirement, ask clarifying
   questions, write the task breakdown, check the subagent's returned results
@@ -109,13 +110,15 @@ with `model: "opus"` or `model: "sonnet"` set explicitly in the call.
 
 ## Opus orchestration mode
 
-**Applies when the running model is Opus (5.5 or later).** Opus is the default
+**Applies only when the running model is Opus 5.5.** Opus is the default
 Claude Code operational lead: it frames the problem, decides within the user's
 authorization, integrates, and accepts the result. Other models have bounded roles:
 
-- **Sonnet is the worker.** Labor goes to Sonnet under the dispatch rule above.
-  Set `model: "sonnet"` explicitly on every such call, because subagents default
-  to `inherit` and would otherwise spend Opus on bulk work.
+- **Choose the worker by task.** Use Sonnet for cheap bounded labor. Use the
+  pinned Cursor or Devin Opus 5.5 roster worker for harder scoped implementation;
+  never use an older/newer Opus version or an unverified alias as a substitute.
+  A different canonical model must review Opus-worker changes before acceptance.
+  The lead still verifies integration and evidence.
 - **Fable is an on-demand adviser.** Consult it for a genuinely hard or risky
   decision, a blocked diagnosis, or independent review required by the task's
   review gate. Give it a bounded question and the relevant evidence, with read-only

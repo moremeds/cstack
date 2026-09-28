@@ -52,8 +52,8 @@ each role, in this order:
 | **herdr agent** (any provider, any machine) | `herdr agent …` | independent, persistent, different model lineage | the role needs eyes or hands from another model (Grok, Devin, Codex, …), a remote box, or a worker that keeps state across dispatches |
 | **native subagent** | Agent tool / `collaboration.spawn_agent` | disposable | bounded labor whose result matters once: search, bulk read, extraction, mechanical edit |
 
-Route by task and canonical model, not vendor; prefer an eligible peer with context, then Cursor/Devin capacity.
-Use native if total cost is lower without external setup. Apply this user-supplied capability/cost heuristic:
+Route by task and canonical model, not vendor; prefer an eligible peer with context, then Cursor/Devin capacity. Use native if total cost is lower without external setup.
+An Opus lead may use Cursor/Devin Opus 5.5 for bounded execution, never independent review; pin and verify 5.5, not another version or moving alias. Apply this capability/cost heuristic:
 
 | Approximate tier | Models | Typical assignment |
 | --- | --- | --- |
@@ -63,7 +63,7 @@ Use native if total cost is lower without external setup. Apply this user-suppli
 | 2.5 | Grok 4.7 | bounded independent review when eligible |
 | lower execution tier (unnumbered) | Sonnet 5, GPT-6 Luna, SWE | search, extraction, clear implementation |
 
-These are routing estimates, not measured benchmarks or equal-price claims. SWE is executor-only.
+These are routing estimates, not measured benchmarks or equal-price claims. SWE is executor-only. Sol 6 defaults to `medium`; use `high` for concrete multi-step difficulty and `xhigh`/`max` only with task evidence.
 Required review seats stay with the calling workflow; do not downgrade them. Exact verified CLI ids,
 price checks, identity evidence and dispatch costs are in `references/herdr-cli.md`.
 
@@ -220,8 +220,7 @@ An author may test, diagnose and fix their work, but cannot serve as its indepen
 reviewer must use a different canonical model (Astra, Fable, Opus, Sol, Grok,
 Sonnet, Luna or SWE), regardless of provider, session, version or effort; SWE remains executor-only.
 Different models in the same tier may review one another when competent and allowed by the caller.
-When independent review is required, cover each substantive part of a mixed-model
-diff with a different-model reviewer before acceptance. Record canonical author/reviewer
+Independent review covers each substantive part with a different canonical model from its author; it is required whenever lead and author share a canonical model. Record canonical author/reviewer
 models and requested/observed identities; unknown or conflicting canonical routing identity cannot
 satisfy required independence. A fresh pane or Cursor-to-Devin switch does not
 create model independence.

@@ -72,9 +72,13 @@ class TestRoster(unittest.TestCase):
             args = w.get("args", [])
             if w["kind"] == "devin":
                 self.assertIn("--permission-mode", args, w["name"])
-                self.assertEqual(args[args.index("--model") + 1], "swe-2-max")
+                expected_model = "claude-opus-5-5-medium" if w["name"] == "devin-opus-implementer" else "swe-2-max"
+                self.assertEqual(args[args.index("--model") + 1], expected_model)
                 self.assertNotIn("reviewer", w["role"])
                 if w["name"] == "implementer":
+                    self.assertEqual(args[args.index("--permission-mode") + 1], "accept-edits")
+                    self.assertIn("--sandbox", args)
+                elif w["name"] == "devin-opus-implementer":
                     self.assertEqual(args[args.index("--permission-mode") + 1], "accept-edits")
                     self.assertIn("--sandbox", args)
             elif w["kind"] == "cursor":
@@ -103,7 +107,7 @@ class TestRoster(unittest.TestCase):
     def test_repo_and_example_reviewer_settings_agree(self):
         actual = tomllib.loads((ROOT / "herd.toml").read_text())
         shared = ("reviewer", "review-fable", "review-opus", "review-astra",
-                  "cursor-implementer", "cursor-adviser")
+                  "cursor-implementer", "devin-opus-implementer", "cursor-adviser")
         expected = {w["name"]: w["args"] for w in self.doc["worker"] if w["name"] in shared}
         self.assertEqual(set(expected), set(shared))
         self.assertTrue(set(shared).issubset({w["name"] for w in actual["worker"]}))

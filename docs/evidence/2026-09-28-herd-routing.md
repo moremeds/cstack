@@ -1,5 +1,7 @@
 # Herd routing and approval validation — 2026-09-28
 
+Historical evidence for the earlier Astra-led policy; the current operational-lead and review rules are in `skills/herd/SKILL.md`, `skills/orchestrate/SKILL.md`, and `rules/`.
+
 Base: `f6b0aa26d0228c1cba0b3cb9b2f5a6b430086874`. Isolated branch: `feat/herd-cost-routing`. Existing unrelated untracked notes were preserved.
 
 ## Actual delegation

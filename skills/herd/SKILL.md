@@ -49,7 +49,7 @@ each role, in this order:
 | Transport | Primitive | Context | Pick it when |
 | --- | --- | --- | --- |
 | **peer session** (same provider) | `ListAgents` → `SendMessage` | independent, persists across turns and compactions | the answer or the change belongs to a repo that has a live session. Ask the session named after that repo instead of re-reading its code. Every session under `~/projects` is a peer; there is no whitelist. |
-| **herdr agent** (any provider, any machine) | `herdr agent …` | independent, persistent, different model lineage | the role needs eyes or hands from another model (Grok, Devin, Codex, …), a remote box, or a worker that keeps state across dispatches |
+| **herdr agent** (any provider, any machine) | `herdr agent …` | independent, persistent | the role needs eyes or hands from another model (Grok, Devin, Codex, …), a remote box, or a worker that keeps state across dispatches |
 | **native subagent** | Agent tool / `collaboration.spawn_agent` | disposable | bounded labor whose result matters once: search, bulk read, extraction, mechanical edit |
 
 Route by task and canonical model, not vendor; prefer an eligible peer with context, then Cursor/Devin capacity. Use native if total cost is lower without external setup.

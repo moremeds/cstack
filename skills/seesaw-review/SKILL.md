@@ -79,7 +79,7 @@ host; missing required evidence remains a gate gap, not a passing caveat.
 
 Use `herd` for one read-only independent seat: Opus 5.5 for a Codex Sol lead,
 Fable for an Astra lead, or Astra for a Claude Code lead (Fable or Opus).
-Verify serving identity; no silent substitution. Optional
+Verify configured canonical routing identity under Herd's evidence rule; disclose unverified provider-serving attestation and make no silent substitution. Optional
 Cursor uses verified Grok 4.7 or newer; Devin may execute authorized checks or
 fixes but never review or vote. If the required peer is unavailable, report the
 missing gate and continue useful lead checks without a passing verdict.

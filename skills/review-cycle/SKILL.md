@@ -102,7 +102,7 @@ The lead owns the review, even when workers provide execution capacity:
   the diff, commands, results, and deviations. They never commit, deliver,
   merge, or publish. This no-commit rule overrides Herd's normal delivery
   contract for these assignments.
-- Devin SWE2 Max is execution-only: investigation, reproduction, checking, and
+- Devin (SWE-2 Max or pinned Opus 5.5) is execution-only: investigation, reproduction, checking, and
   fixing. It is never seated as a reviewer and never supplies a verdict.
 
 Workers supply evidence, not acceptance. The lead personally verifies every

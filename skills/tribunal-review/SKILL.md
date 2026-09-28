@@ -28,7 +28,7 @@ Use the actual lead model and the user's selection, not just the CLI name:
 Grok 4.7 (`grok-4.7-high`) or a newer verified available Grok, pinned throughout the review — a different model lineage from every other seat on the panel, which
 is the whole premise of this skill: two instances of the same model share blind
 spots. When Gemini is unavailable, Cursor/Grok still supplies an independent
-cross-lineage vote. Devin is execution-only (SWE-2 Max), never a reviewer or
+cross-lineage vote. Devin is execution-only (SWE-2 Max or pinned Opus 5.5), never a reviewer or
 voting seat. Do not treat two CLIs using the same model as independent lineages.
 The required peer is Fable for a Codex lead and Astra for a Claude Code lead:
 no downgrade to a default model or automatic fallback. Cursor supplements this

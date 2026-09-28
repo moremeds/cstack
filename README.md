@@ -31,6 +31,11 @@ cstack is a Claude Code and Codex skills plugin. The seven skills install
 together and share source files. `orchestrate` uses native subagents when
 available; installing the plugin does not supply models or agent tools.
 
+The operational lead owns scope, integration, review decisions, and final
+acceptance. Codex defaults to GPT-6 Sol; Claude Code defaults to Opus 5.5.
+Fable and Astra are called for bounded difficult decisions or required
+independent review. A user can explicitly choose a different capable lead.
+
 ## The seven skills
 
 ### `orchestrate`
@@ -72,11 +77,22 @@ $herd <task or approved plan>
 ```
 
 The lead picks a transport per worker: a same-provider peer session for
-work that belongs to another live repo, a herdr agent for another model or
-machine, a native subagent for disposable labor. Persistent workers run
-under an execution contract with a per-task review gate. Requires
-[herdr](https://herdr.dev) for the herdr transport; the other two work
-without it.
+work that belongs to another live repo, a herdr agent for persistent work
+on another model or machine, or a native subagent for bounded one-off work.
+An explicit `$herd` request puts the substantive work with workers; the lead
+sets scope, handles authorized permission prompts, checks the result, and
+integrates it. Persistent assignments use an execution contract and a
+per-task review gate. Only the herdr transport requires [herdr](https://herdr.dev).
+
+An Opus lead can send harder scoped implementation to Cursor or Devin pinned
+to **Opus 5.5**; a different Opus version or moving alias is not a substitute.
+Those workers can implement but cannot independently review Opus work. When
+lead and worker use the same canonical model, a different model must review
+each substantive change before the lead accepts it. Model identity is checked
+from launch settings and available runtime labels; this does not attest to
+the provider's serving model. Sol starts at medium effort and increases effort
+only when the task warrants it. These choices aim to reduce total cost, but
+the repository does not claim measured token savings.
 
 ### `whatup`
 
@@ -135,6 +151,8 @@ you can use to re-verify each claim.
 
 Add `--full-cycle` to review the plan before implementation, review the final
 cumulative diff, and run the plan's real end-to-end check when one exists.
+Even without `--full-cycle`, a worker sharing the lead's canonical model
+triggers different-model review before the affected milestone is accepted.
 
 ---
 

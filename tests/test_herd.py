@@ -307,7 +307,7 @@ MANIFESTS = [
     ROOT / ".claude-plugin" / "plugin.json",
     ROOT / ".codex-plugin" / "plugin.json",
 ]
-RULES = [ROOT / "rules" / "AGENTS.md", ROOT / "rules" / "CLAUDE.md"]
+RULES = [ROOT / "rules" / "AGENTS.md"]
 
 
 class TestRegistration(unittest.TestCase):
@@ -326,6 +326,10 @@ class TestRegistration(unittest.TestCase):
     def test_rules_route_to_herd(self):
         for r in RULES:
             self.assertIn("`herd`", r.read_text(), r.name)
+
+    def test_one_global_rule_source_without_superpowers(self):
+        self.assertFalse((ROOT / "rules" / "CLAUDE.md").exists())
+        self.assertNotIn("superpowers", RULES[0].read_text().lower())
 
 
 if __name__ == "__main__":

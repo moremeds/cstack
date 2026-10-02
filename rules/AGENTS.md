@@ -95,7 +95,21 @@
   they help compare evidence. Include changes, check results, and unverified items.
   Test evidence, merged code, deployment, and a real run are distinct claims;
   verify on the environment named by the acceptance criteria.
-- Use direct, literal language; avoid metaphor and flourish.
+
+## Writing style
+
+Use a relaxed ASD-STE100 Simplified Technical English style, about 80% of the
+way to STE. This is a readability goal, not a compliance score.
+
+- Use short sentences and common words. Give each sentence one main idea.
+- Use active voice. State who does what. Give one action per instruction step.
+- Use the same term for the same concept. Avoid ambiguous pronouns and long noun chains.
+- Use direct, literal language. Remove filler, metaphor, flourish, and unnecessary jargon.
+- Keep the facts, conditions, technical terms, and uncertainty needed for accuracy.
+  Explain unfamiliar terms when the reader needs them.
+- Keep a natural tone. Do not force dictionary limits or word counts unless the user
+  requests strict STE. For Chinese, apply these clarity principles in natural Chinese;
+  do not force English grammar or switch languages.
 
 ## Context and resource use
 

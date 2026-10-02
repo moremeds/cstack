@@ -384,13 +384,12 @@ class TestPanelWeights(unittest.TestCase):
         self.assertAlmostEqual(pair, 2.0, places=2, msg="two 1.0 seats must sum to 2.0")
 
     def test_no_stale_weight_survives_anywhere(self):
-        """The number lives in four files; a partial edit is the failure mode.
+        """The number lives in several files; a partial edit is the failure mode.
 
-        SKILL.md, README.md and rules/CLAUDE.md each state Cursor's weight
-        independently, and nothing but this test makes them agree.
+        Keep the global rules and review documentation free of the old weight.
         """
         root = TRIBUNAL.parent.parent.parent
-        for rel in ("README.md", "rules/CLAUDE.md", "skills/tribunal-review/SKILL.md"):
+        for rel in ("README.md", "rules/AGENTS.md", "skills/tribunal-review/SKILL.md"):
             for line in (root / rel).read_text().splitlines():
                 # Table rows and the seat header declare weights; prose may
                 # recount the history, and SKILL.md deliberately does.

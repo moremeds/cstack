@@ -98,8 +98,13 @@
 
 ## Writing style
 
-Use a relaxed ASD-STE100 Simplified Technical English style, about 80% of the
-way to STE. This is a readability goal, not a compliance score.
+When explaining something, default to a relaxed ASD-STE100 Simplified Technical
+English style, about 80% of the way to STE. This is a readability goal, not a
+compliance score. For other writing tasks, adapt the style to the task, audience,
+and user requirements. Explicit user requests and applicable task or project
+style requirements override this default.
+
+For explanations that use this default:
 
 - Use short sentences and common words. Give each sentence one main idea.
 - Use active voice. State who does what. Give one action per instruction step.
@@ -109,7 +114,7 @@ way to STE. This is a readability goal, not a compliance score.
   Explain unfamiliar terms when the reader needs them.
 - Keep a natural tone. Do not force dictionary limits or word counts unless the user
   requests strict STE. For Chinese, apply these clarity principles in natural Chinese;
-  do not force English grammar or switch languages.
+  do not force English grammar or switch the reply language.
 
 ## Context and resource use
 
